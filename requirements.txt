@@ -1,6 +1,8 @@
 datasets==3.3.2
+faiss-cpu
 numpy==2.2.6
 pandas==2.2.3
 pytest==8.3.5
 scikit-learn==1.6.1
+sentence-transformers
 tqdm==4.67.1
