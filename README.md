@@ -12,6 +12,27 @@ Requires Python 3.11 or 3.12.
 
 Sentence-BERT and CPU FAISS are installed through `requirements.txt`; no additional system installation is needed. Embedding uses the already-configured CUDA-enabled PyTorch installation when a GPU is available and otherwise falls back to CPU. FAISS searches on CPU.
 
+## arXiv terminal demo
+
+Build the demo corpus once (the loader streams rather than downloading the 341 MB source metadata file locally):
+
+```powershell
+.venv\Scripts\python.exe -m scripts.build_corpus
+```
+
+This uses [`yacud1/arxiv-bge-base-818k`](https://huggingface.co/datasets/yacud1/arxiv-bge-base-818k), a public no-auth Hugging Face dataset. Its card lists the arXiv metadata and abstracts as **CC0-1.0** and exposes the `id`, `title`, `abstract`, `categories`, and `update_date` fields used by the builder. The command filters cross-listed or primary papers in `cs.CL`, `cs.AI`, `cs.LG`, `cs.IR`, and `cs.CV`, removes blank abstracts, deduplicates arXiv IDs, cleans whitespace, and deterministically reservoir-samples 30,000 records (use `--size` and `--seed` to change this). It writes `data/arxiv_cs_30000.jsonl`; `data/` is intentionally gitignored.
+
+Run a single semantic query. The first run creates and saves the FAISS index; later runs load it without re-embedding:
+
+```powershell
+.venv\Scripts\python.exe -m scripts.search_demo --query "how can neural networks understand human language?"
+.venv\Scripts\python.exe -m scripts.search_demo --method tfidf --query "image recognition with transformers"
+```
+
+Run without `--query` for an interactive prompt. Use `--rebuild` to recreate the saved SBERT index, `--model` to select another Sentence-BERT model, and `--index-dir` or `--corpus` to change local paths. The index includes its model name, document IDs, document texts, and count; loading with a different `--model` fails clearly instead of returning incompatible embeddings.
+
+Observed build time, index size, corpus size, and cold/warm timings will be recorded here after running the commands in the target environment.
+
 ## Run evaluation
 
 From the repository root:

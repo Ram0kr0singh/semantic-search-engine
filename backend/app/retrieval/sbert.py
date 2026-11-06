@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Mapping
 
 import faiss
@@ -39,6 +41,54 @@ class SentenceBertRetriever(Retriever):
         embeddings = self._encode(self._document_texts, show_progress_bar=True)
         self._index = faiss.IndexFlatIP(embeddings.shape[1])
         self._index.add(embeddings)
+
+    def save(self, path: str | Path) -> None:
+        """Persist the FAISS index and the document data needed to query it."""
+        if self._index is None:
+            raise RuntimeError("Call index() before save().")
+
+        output_dir = Path(path)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        faiss.write_index(self._index, str(output_dir / "index.faiss"))
+        metadata = {
+            "model_name": self.model_name,
+            "document_ids": self._document_ids,
+            "document_texts": self._document_texts,
+            "document_count": len(self._document_ids),
+        }
+        (output_dir / "metadata.json").write_text(json.dumps(metadata), encoding="utf-8")
+
+    def load(self, path: str | Path) -> None:
+        """Load a persisted index, rejecting data built with another model."""
+        input_dir = Path(path)
+        metadata_path = input_dir / "metadata.json"
+        index_path = input_dir / "index.faiss"
+        if not metadata_path.is_file() or not index_path.is_file():
+            raise FileNotFoundError(f"No saved SBERT index found in '{input_dir}'.")
+
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        saved_model = metadata.get("model_name")
+        if saved_model != self.model_name:
+            raise ValueError(
+                f"Saved index uses model '{saved_model}', but requested model is '{self.model_name}'."
+            )
+        document_ids = metadata.get("document_ids")
+        document_texts = metadata.get("document_texts")
+        document_count = metadata.get("document_count")
+        if (
+            not isinstance(document_ids, list)
+            or not isinstance(document_texts, list)
+            or document_count != len(document_ids)
+            or len(document_ids) != len(document_texts)
+        ):
+            raise ValueError(f"Saved SBERT metadata in '{metadata_path}' is invalid.")
+
+        index = faiss.read_index(str(index_path))
+        if index.ntotal != document_count:
+            raise ValueError("Saved SBERT index count does not match its metadata.")
+        self._document_ids = [str(doc_id) for doc_id in document_ids]
+        self._document_texts = [str(text) for text in document_texts]
+        self._index = index
 
     def search(self, query: str, k: int) -> list[SearchResult]:
         """Return the top ``k`` cosine-similar documents for ``query``."""
