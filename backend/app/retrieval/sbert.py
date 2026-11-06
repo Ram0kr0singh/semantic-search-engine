@@ -18,7 +18,7 @@ class SentenceBertRetriever(Retriever):
     def __init__(
         self,
         model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
-        batch_size: int = 32,
+        batch_size: int = 64,
     ) -> None:
         """Load ``model_name`` on CUDA when available, otherwise on CPU."""
         self.model_name = model_name
@@ -36,7 +36,7 @@ class SentenceBertRetriever(Retriever):
         if not self._document_ids:
             raise ValueError("Cannot index an empty corpus.")
 
-        embeddings = self._encode(self._document_texts)
+        embeddings = self._encode(self._document_texts, show_progress_bar=True)
         self._index = faiss.IndexFlatIP(embeddings.shape[1])
         self._index.add(embeddings)
 
@@ -58,14 +58,14 @@ class SentenceBertRetriever(Retriever):
             if index >= 0
         ]
 
-    def _encode(self, texts: list[str]) -> np.ndarray:
+    def _encode(self, texts: list[str], show_progress_bar: bool = False) -> np.ndarray:
         """Return normalized, FAISS-compatible embeddings for ``texts``."""
         embeddings = self.model.encode(
             texts,
             batch_size=self.batch_size,
             convert_to_numpy=True,
             normalize_embeddings=True,
-            show_progress_bar=False,
+            show_progress_bar=show_progress_bar,
         )
         return np.ascontiguousarray(embeddings, dtype=np.float32)
 

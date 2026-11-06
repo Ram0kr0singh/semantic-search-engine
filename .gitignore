@@ -16,5 +16,9 @@ venv/
 data/
 results/
 
+# Keep Python source in the backend data package; only benchmark caches are ignored.
+!backend/app/data/
+!backend/app/data/*.py
+
 # JavaScript
 node_modules/

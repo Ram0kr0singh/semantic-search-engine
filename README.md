@@ -1,6 +1,6 @@
 # Semantic Document Search Engine
 
-A university NLP capstone and portfolio project for comparing document retrieval methods. It includes TF-IDF and Sentence-BERT dense retrieval on the [BEIR SciFact](https://github.com/beir-cellar/beir) benchmark; an API, database, and UI are deliberately deferred.
+A university NLP capstone and portfolio project for comparing document retrieval methods. It includes TF-IDF and Sentence-BERT dense retrieval on registered [BEIR](https://github.com/beir-cellar/beir) benchmarks; an API, database, and UI are deliberately deferred.
 
 ## Setup
 
@@ -17,23 +17,39 @@ Sentence-BERT and CPU FAISS are installed through `requirements.txt`; no additio
 From the repository root:
 
 ```powershell
-.venv\Scripts\python.exe -m scripts.evaluate --method tfidf
+.venv\Scripts\python.exe -m scripts.evaluate --dataset scifact --method tfidf
 ```
 
 Run Sentence-BERT with the default `all-MiniLM-L6-v2` model:
 
 ```powershell
-.venv\Scripts\python.exe -m scripts.evaluate --method sbert
+.venv\Scripts\python.exe -m scripts.evaluate --dataset fiqa --method sbert
 ```
 
 Compare all registered retrievers in one table, or use another Sentence-BERT model:
 
 ```powershell
-.venv\Scripts\python.exe -m scripts.evaluate --method all
-.venv\Scripts\python.exe -m scripts.evaluate --method sbert --model sentence-transformers/all-mpnet-base-v2
+.venv\Scripts\python.exe -m scripts.evaluate --dataset scifact --method all
+.venv\Scripts\python.exe -m scripts.evaluate --dataset fiqa --method sbert --model sentence-transformers/all-mpnet-base-v2
+.venv\Scripts\python.exe -m scripts.evaluate --dataset all --method all
 ```
 
-The first run downloads BEIR SciFact into the gitignored `data/` directory. It prints Recall@1/5/10/100, MRR@10, nDCG@10, index build time, and mean query latency, then writes JSON to gitignored `results/`.
+`--dataset` defaults to `scifact`; the current registry contains `scifact` and `fiqa`. `--dataset all` evaluates the selected method(s) against each registered dataset. The first run downloads the selected BEIR collection into the gitignored `data/` directory. It prints Recall@1/5/10/100, MRR@10, nDCG@10, index build time, and mean query latency, then writes JSON to gitignored `results/`. SBERT filenames include the model slug, such as `results/fiqa_sbert_all-mpnet-base-v2.json`, so model runs do not overwrite each other.
+
+To add another BEIR-format dataset published on Hugging Face, add one `DatasetDefinition` entry to `DATASET_REGISTRY` in `backend/app/data/beir.py`, naming its corpus/query repository and qrels repository. No new loader code is needed when it follows the same BEIR `corpus`, `queries`, and test-qrels layout.
+
+## Results
+
+Measured with the commands above on the configured RTX 4060 environment. Index build time excludes Sentence-BERT model load/download time.
+
+| Dataset | Method | Model | nDCG@10 | Index build seconds |
+| --- | --- | --- | --- | --- |
+| SciFact | TF-IDF | — | 0.6418 | 1.6801 |
+| SciFact | SBERT | all-MiniLM-L6-v2 | 0.6451 | 8.5948 |
+| SciFact | SBERT | all-mpnet-base-v2 | 0.6557 | 69.8689 |
+| FiQA | TF-IDF | — | 0.1488 | 11.2276 |
+| FiQA | SBERT | all-MiniLM-L6-v2 | 0.3687 | 63.8386 |
+| FiQA | SBERT | all-mpnet-base-v2 | 0.4996 | 468.8733 |
 
 ## Test
 

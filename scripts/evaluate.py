@@ -1,4 +1,4 @@
-"""Run a retrieval benchmark against BEIR SciFact."""
+"""Run retrieval benchmarks against registered BEIR datasets."""
 
 from __future__ import annotations
 
@@ -6,8 +6,9 @@ import argparse
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+import re
 
-from backend.app.data.scifact import load_scifact
+from backend.app.data.beir import BeirDataset, dataset_names, load_dataset
 from backend.app.evaluation.runner import EvaluationReport, evaluate
 from backend.app.retrieval.base import Retriever
 from backend.app.retrieval.sbert import SentenceBertRetriever
@@ -24,6 +25,16 @@ def build_retriever(method: str, model_name: str) -> Retriever:
     except KeyError as exc:
         methods = (*registry, "sbert")
         raise ValueError(f"Unknown method '{method}'. Available methods: {', '.join(methods)}") from exc
+
+
+def result_filename(dataset: str, method: str, model_name: str | None = None) -> str:
+    """Return a collision-resistant, filesystem-safe JSON report filename."""
+    if method == "sbert":
+        if not model_name:
+            raise ValueError("A Sentence-BERT result filename requires a model name.")
+        model_slug = re.sub(r"[^A-Za-z0-9._-]+", "-", model_name.rsplit("/", 1)[-1]).strip("-._").lower()
+        return f"{dataset}_{method}_{model_slug}.json"
+    return f"{dataset}_{method}.json"
 
 
 def print_report(method: str, report: EvaluationReport) -> None:
@@ -74,6 +85,14 @@ def print_comparison(reports: dict[str, EvaluationReport]) -> None:
         print(f"{values[0]:<10}" + "".join(f"  {value:>10.4f}" for value in values[1:]))
 
 
+def print_dataset_header(name: str, dataset: BeirDataset) -> None:
+    """Print the loaded test-set identity and exact collection counts."""
+    print(
+        f"{name} test set: {len(dataset.corpus):,} documents | "
+        f"{len(dataset.queries):,} queries | {dataset.qrel_count:,} qrels"
+    )
+
+
 def main() -> None:
     """Parse CLI arguments, evaluate a retriever, and write a JSON report."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -84,6 +103,12 @@ def main() -> None:
         help="Retriever to evaluate, or all registered retrievers.",
     )
     parser.add_argument(
+        "--dataset",
+        default="scifact",
+        choices=(*dataset_names(), "all"),
+        help="BEIR dataset to evaluate, or all registered datasets.",
+    )
+    parser.add_argument(
         "--model",
         default="sentence-transformers/all-MiniLM-L6-v2",
         help="Sentence-BERT model name used when --method is sbert or all.",
@@ -92,30 +117,34 @@ def main() -> None:
     parser.add_argument("--results-dir", type=Path, default=Path("results"), help="Directory for JSON reports.")
     args = parser.parse_args()
 
-    dataset = load_scifact(args.data_dir)
-    print(f"SciFact test set: {len(dataset.corpus):,} documents | {len(dataset.queries):,} queries | {len(dataset.qrels):,} qrels")
-
     args.results_dir.mkdir(parents=True, exist_ok=True)
     methods = ("tfidf", "sbert") if args.method == "all" else (args.method,)
-    reports = {
-        method: evaluate(build_retriever(method, args.model), dataset.corpus, dataset.queries, dataset.qrels)
-        for method in methods
-    }
-    if args.method == "all":
-        print_comparison(reports)
-    else:
-        print_report(args.method, reports[args.method])
-
-    for method, report in reports.items():
-        output_path = args.results_dir / f"scifact_{method}.json"
-        payload = {
-            "method": method,
-            "dataset": "BEIR SciFact",
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            **report.to_dict(),
+    names = dataset_names() if args.dataset == "all" else (args.dataset,)
+    for name in names:
+        dataset = load_dataset(name, args.data_dir)
+        print_dataset_header(name, dataset)
+        # SentenceBertRetriever loads its model during construction, before
+        # evaluate starts its index timer. That keeps index timings comparable.
+        reports = {
+            method: evaluate(build_retriever(method, args.model), dataset.corpus, dataset.queries, dataset.qrels)
+            for method in methods
         }
-        output_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-        print(f"Saved JSON report: {output_path}")
+        if args.method == "all":
+            print_comparison(reports)
+        else:
+            print_report(args.method, reports[args.method])
+
+        for method, report in reports.items():
+            output_path = args.results_dir / result_filename(name, method, args.model)
+            payload = {
+                "method": method,
+                "dataset": name,
+                "model": args.model if method == "sbert" else None,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                **report.to_dict(),
+            }
+            output_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+            print(f"Saved JSON report: {output_path}")
 
 
 if __name__ == "__main__":
