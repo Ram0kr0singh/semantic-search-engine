@@ -1,6 +1,6 @@
 # Semantic Document Search Engine
 
-A university NLP capstone and portfolio project for comparing document retrieval methods. It includes TF-IDF and Sentence-BERT dense retrieval on registered [BEIR](https://github.com/beir-cellar/beir) benchmarks; an API, database, and UI are deliberately deferred.
+A university NLP capstone and portfolio project for comparing document retrieval methods. It includes TF-IDF and Sentence-BERT dense retrieval on registered [BEIR](https://github.com/beir-cellar/beir) benchmarks and a FastAPI search API.
 
 ## Setup
 
@@ -11,6 +11,40 @@ Requires Python 3.11 or 3.12.
 ```
 
 Sentence-BERT and CPU FAISS are installed through `requirements.txt`; no additional system installation is needed. Embedding uses the already-configured CUDA-enabled PyTorch installation when a GPU is available and otherwise falls back to CPU. FAISS searches on CPU.
+
+## Run the API
+
+Build the arXiv corpus and at least one saved SBERT index as described below, then start the server from the repository root. Do not use `--reload`: it creates another process and reloads the models.
+
+```powershell
+.venv\Scripts\python.exe -m uvicorn backend.app.api.main:app --port 8000
+```
+
+Swagger UI is available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs). The API loads the corpus and builds TF-IDF once at startup, then loads only SBERT indexes already present on disk. A missing SBERT index leaves its method unavailable; the server log prints the command to create it.
+
+Endpoints:
+
+- `GET /health` reports readiness, document count, methods, device, and API version.
+- `GET /methods` lists stable method IDs: `tfidf`, `sbert-minilm`, and `sbert-mpnet`.
+- `POST /search` accepts `query`, optional `method`, and optional `k` (1–50; default 10). It defaults to MPNet when available.
+- `GET /documents/{id}` returns a complete corpus record.
+
+```powershell
+curl http://127.0.0.1:8000/health
+curl -X POST http://127.0.0.1:8000/search -H "Content-Type: application/json" -d '{"query":"making models smaller without losing accuracy","method":"sbert-mpnet","k":5}'
+curl http://127.0.0.1:8000/documents/0704.2083
+```
+
+Configuration is supplied through environment variables; paths below are relative to the working directory by default.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `ARXIV_CORPUS_PATH` | `data/arxiv_cs_30000.jsonl` | JSONL corpus path |
+| `ARXIV_MINILM_INDEX_DIR` | `data/arxiv_sbert_index` | MiniLM saved-index directory |
+| `ARXIV_MPNET_INDEX_DIR` | `data/index_mpnet` | MPNet saved-index directory |
+| `ARXIV_MINILM_MODEL` | `sentence-transformers/all-MiniLM-L6-v2` | MiniLM model name |
+| `ARXIV_MPNET_MODEL` | `sentence-transformers/all-mpnet-base-v2` | MPNet model name |
+| `API_CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated allowed browser origins |
 
 ## arXiv terminal demo
 
