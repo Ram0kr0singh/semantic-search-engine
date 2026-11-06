@@ -1,0 +1,185 @@
+import type { FormEvent } from 'react';
+import type { Method } from '../api';
+import { EXAMPLE_QUERIES } from '../constants';
+import type { ResultCount, SearchMode } from '../urlState';
+
+interface SearchControlsProps {
+  query: string;
+  setQuery: (q: string) => void;
+  mode: SearchMode;
+  setMode: (m: SearchMode) => void;
+  model: string;
+  setModel: (m: string) => void;
+  k: ResultCount;
+  setK: (k: ResultCount) => void;
+  methods: Method[];
+  isSearching: boolean;
+  onSubmit: (event?: FormEvent, forcedQuery?: string) => void;
+}
+
+export function SearchControls({
+  query,
+  setQuery,
+  mode,
+  setMode,
+  model,
+  setModel,
+  k,
+  setK,
+  methods,
+  isSearching,
+  onSubmit,
+}: SearchControlsProps) {
+  const selectedMethod = methods.find((m) => m.id === model);
+
+  // In compare mode, we only select the SBERT model to compare against TF-IDF
+  const selectableMethods =
+    mode === 'compare'
+      ? methods.filter((m) => m.id.startsWith('sbert-'))
+      : methods;
+
+  const handleModeChange = (newMode: SearchMode) => {
+    if (newMode === mode) return;
+    setMode(newMode);
+    // If switching to compare mode and currently selected model is tfidf, switch to a ready sbert model
+    if (newMode === 'compare' && model === 'tfidf') {
+      const readySbert =
+        methods.find((m) => m.id === 'sbert-mpnet' && m.ready)?.id ??
+        methods.find((m) => m.id.startsWith('sbert-') && m.ready)?.id ??
+        'sbert-mpnet';
+      setModel(readySbert);
+    }
+  };
+
+  return (
+    <section className="bg-white border border-slate-200 rounded-xl p-4 sm:p-6 shadow-xs space-y-4">
+      {/* Mode toggle tabs */}
+      <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg w-fit" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'compare'}
+          onClick={() => handleModeChange('compare')}
+          className={`px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-md transition-all cursor-pointer ${
+            mode === 'compare'
+              ? 'bg-white text-slate-900 shadow-2xs'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          Compare
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'search'}
+          onClick={() => handleModeChange('search')}
+          className={`px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-md transition-all cursor-pointer ${
+            mode === 'search'
+              ? 'bg-white text-slate-900 shadow-2xs'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          Search
+        </button>
+      </div>
+
+      {/* Main search form */}
+      <form onSubmit={(e) => onSubmit(e)} className="space-y-4">
+        <div>
+          <label
+            htmlFor="search-query-input"
+            className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5"
+          >
+            Search 30,000 computer science research papers
+          </label>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              id="search-query-input"
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Enter research keywords or natural-language question..."
+              maxLength={500}
+              className="flex-1 px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-lg shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:border-blue-600"
+            />
+            <button
+              type="submit"
+              disabled={!query.trim() || isSearching}
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg shadow-2xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 cursor-pointer"
+            >
+              {isSearching ? 'Searching…' : 'Search'}
+            </button>
+          </div>
+        </div>
+
+        {/* Configuration selectors */}
+        <div className="flex flex-wrap items-end gap-4 pt-1">
+          <div>
+            <label
+              htmlFor="model-select"
+              className="block text-xs font-semibold text-slate-700 mb-1"
+            >
+              {mode === 'compare' ? 'Compare TF-IDF against:' : 'Retrieval Method:'}
+            </label>
+            <select
+              id="model-select"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              className="text-xs sm:text-sm bg-white border border-slate-300 rounded-md px-3 py-1.5 text-slate-800 shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 cursor-pointer"
+            >
+              {selectableMethods.map((m) => (
+                <option key={m.id} value={m.id} disabled={!m.ready}>
+                  {m.display_name}
+                  {!m.ready ? ' (index unavailable)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label
+              htmlFor="k-select"
+              className="block text-xs font-semibold text-slate-700 mb-1"
+            >
+              Results (k):
+            </label>
+            <select
+              id="k-select"
+              value={k}
+              onChange={(e) => setK(Number(e.target.value) as ResultCount)}
+              className="text-xs sm:text-sm bg-white border border-slate-300 rounded-md px-3 py-1.5 text-slate-800 shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 cursor-pointer"
+            >
+              <option value={5}>5 results</option>
+              <option value={10}>10 results</option>
+              <option value={20}>20 results</option>
+            </select>
+          </div>
+
+          {selectedMethod && !selectedMethod.ready && (
+            <p className="text-xs text-amber-700 bg-amber-50 px-2.5 py-1 rounded border border-amber-200">
+              This method’s index has not been built yet.
+            </p>
+          )}
+        </div>
+      </form>
+
+      {/* Example queries */}
+      <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+        <span className="font-medium mr-1 text-slate-600">Examples:</span>
+        {EXAMPLE_QUERIES.map((example) => (
+          <button
+            key={example}
+            type="button"
+            onClick={() => {
+              setQuery(example);
+              onSubmit(undefined, example);
+            }}
+            className="px-2.5 py-1 bg-slate-50 hover:bg-slate-100 text-blue-700 border border-slate-200 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 cursor-pointer"
+          >
+            {example}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
