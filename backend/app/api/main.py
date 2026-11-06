@@ -11,7 +11,7 @@ import torch
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.encoders import jsonable_encoder
 
 from backend.app.data.arxiv import load_arxiv_corpus
@@ -91,6 +91,10 @@ def create_app(registry: SearchRegistry | None = None) -> FastAPI:
     async def unhandled_error(_: Request, exc: Exception) -> JSONResponse:
         logger.exception("Unhandled API error")
         return JSONResponse(status_code=500, content={"error": {"code": "internal_error", "message": "An internal server error occurred."}})
+
+    @app.get("/", include_in_schema=False)
+    def root() -> RedirectResponse:
+        return RedirectResponse(url="/docs")
 
     app.include_router(router)
     return app

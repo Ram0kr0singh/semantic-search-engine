@@ -48,6 +48,12 @@ def test_health_and_methods_shapes(client: TestClient) -> None:
     assert set(methods.json()[0]) == {"id", "display_name", "model_name", "ready"}
 
 
+def test_root_redirects_to_docs(client: TestClient) -> None:
+    response = client.get("/", follow_redirects=False)
+    assert 300 <= response.status_code < 400
+    assert response.headers["location"].endswith("/docs")
+
+
 def test_search_returns_descending_results_and_shape(client: TestClient) -> None:
     response = client.post("/search", json={"query": "  compression  ", "method": "tfidf", "k": 2})
     body = response.json()
