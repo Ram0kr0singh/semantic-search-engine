@@ -8,6 +8,7 @@ interface ResultColumnProps {
   error: string | null;
   loading: boolean;
   other: SearchResponse | null;
+  showOnlyHere: boolean;
   getDocument: (id: string) => Promise<DocumentRecord>;
 }
 
@@ -17,6 +18,7 @@ export function ResultColumn({
   error,
   loading,
   other,
+  showOnlyHere,
   getDocument,
 }: ResultColumnProps) {
   const onlyIds = onlyHereIds(response, other);
@@ -95,7 +97,7 @@ export function ResultColumn({
             <ResultCard
               key={item.id}
               item={item}
-              onlyHere={onlyIds.has(item.id)}
+              onlyHere={showOnlyHere && onlyIds.has(item.id)}
               getDocument={getDocument}
             />
           ))}

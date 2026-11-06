@@ -70,6 +70,15 @@ export class ApiError extends Error {
   }
 }
 
+export function formatValidationDetails(details: unknown): string {
+  if (!Array.isArray(details)) return '';
+  return details
+    .map((detail) => detail && typeof detail === 'object' && typeof (detail as { msg?: unknown }).msg === 'string'
+      ? (detail as { msg: string }).msg.replace(/^Value error,\s*/i, '') : '')
+    .filter(Boolean)
+    .join('; ');
+}
+
 let activeSearchController: AbortController | null = null;
 
 export const beginSearch = (): AbortController => {
@@ -132,6 +141,10 @@ async function request<T>(
 
       if (buildCommand) {
         message = `${message} Build it with: ${buildCommand}`;
+      }
+      const validationDetails = response.status === 422 ? formatValidationDetails(details) : '';
+      if (validationDetails) {
+        message = `${message.replace(/[.:]$/, '')}: ${validationDetails}.`;
       }
 
       throw new ApiError(response.status, message, code, details, buildCommand);

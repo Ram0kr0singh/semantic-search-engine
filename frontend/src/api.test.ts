@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { api, ApiError, beginSearch } from './api';
+import { api, ApiError, beginSearch, formatValidationDetails } from './api';
 
 describe('API client and error normalization', () => {
   afterEach(() => {
@@ -76,6 +76,18 @@ describe('API client and error normalization', () => {
       expect(apiErr.message).toBe('Unknown search method.');
       return true;
     });
+  });
+
+  it('adds readable 422 validation details without exposing raw objects', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(JSON.stringify({
+      error: { code: 'validation_error', message: 'Invalid request.', details: [{ type: 'value_error', loc: ['body', 'query'], msg: 'Value error, query must be at most 500 characters' }] },
+    }), { status: 422, headers: { 'Content-Type': 'application/json' } }))));
+
+    await expect(api.search({ query: 'test', method: 'tfidf', k: 5 })).rejects.toMatchObject({
+      message: 'Invalid request: query must be at most 500 characters.',
+    });
+    expect(formatValidationDetails(undefined)).toBe('');
+    expect(formatValidationDetails([])).toBe('');
   });
 
   it('normalizes a 404 document not found error', async () => {

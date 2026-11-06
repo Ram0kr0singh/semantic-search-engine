@@ -1,4 +1,4 @@
-import type { FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import type { Method } from '../api';
 import { EXAMPLE_QUERIES } from '../constants';
 import type { ResultCount, SearchMode } from '../urlState';
@@ -7,13 +7,14 @@ interface SearchControlsProps {
   query: string;
   setQuery: (q: string) => void;
   mode: SearchMode;
-  setMode: (m: SearchMode) => void;
+  onModeChange: (mode: SearchMode, model: string) => void;
   model: string;
   setModel: (m: string) => void;
   k: ResultCount;
   setK: (k: ResultCount) => void;
   methods: Method[];
   isSearching: boolean;
+  settingsChanged: boolean;
   onSubmit: (event?: FormEvent, forcedQuery?: string) => void;
 }
 
@@ -21,13 +22,14 @@ export function SearchControls({
   query,
   setQuery,
   mode,
-  setMode,
+  onModeChange,
   model,
   setModel,
   k,
   setK,
   methods,
   isSearching,
+  settingsChanged,
   onSubmit,
 }: SearchControlsProps) {
   const selectedMethod = methods.find((m) => m.id === model);
@@ -40,15 +42,16 @@ export function SearchControls({
 
   const handleModeChange = (newMode: SearchMode) => {
     if (newMode === mode) return;
-    setMode(newMode);
+    let nextModel = model;
     // If switching to compare mode and currently selected model is tfidf, switch to a ready sbert model
     if (newMode === 'compare' && model === 'tfidf') {
       const readySbert =
         methods.find((m) => m.id === 'sbert-mpnet' && m.ready)?.id ??
         methods.find((m) => m.id.startsWith('sbert-') && m.ready)?.id ??
         'sbert-mpnet';
-      setModel(readySbert);
+      nextModel = readySbert;
     }
+    onModeChange(newMode, nextModel);
   };
 
   return (
@@ -110,6 +113,8 @@ export function SearchControls({
               {isSearching ? 'Searching…' : 'Search'}
             </button>
           </div>
+          {query.length > 400 && <p className="mt-1 text-xs text-slate-500" aria-hidden="true">{query.length}/500 characters</p>}
+          <CharacterCounterAnnouncement length={query.length} />
         </div>
 
         {/* Configuration selectors */}
@@ -160,6 +165,7 @@ export function SearchControls({
               This method’s index has not been built yet.
             </p>
           )}
+          {settingsChanged && <p className="text-xs text-slate-500" role="status">Settings changed, press Search to update.</p>}
         </div>
       </form>
 
@@ -182,4 +188,17 @@ export function SearchControls({
       </div>
     </section>
   );
+}
+
+function CharacterCounterAnnouncement({ length }: { length: number }) {
+  const [announcement, setAnnouncement] = useState('');
+  const wasOverThreshold = useRef(length > 400);
+  useEffect(() => {
+    const isOverThreshold = length > 400;
+    if (isOverThreshold !== wasOverThreshold.current) {
+      setAnnouncement(isOverThreshold ? `Query is ${length} of 500 characters.` : 'Query is below 401 characters.');
+      wasOverThreshold.current = isOverThreshold;
+    }
+  }, [length]);
+  return <span className="sr-only" aria-live="polite">{announcement}</span>;
 }

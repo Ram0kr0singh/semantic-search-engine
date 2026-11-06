@@ -121,9 +121,9 @@ describe('App Component', () => {
     expect(await screen.findByText('TF-IDF Paper Unique')).toBeInTheDocument();
     expect(screen.getByText('MPNet Paper Unique')).toBeInTheDocument();
 
-    // Check both distinct papers have "Only here" badges
-    const badges = screen.getAllByText('Only here');
-    expect(badges.length).toBe(2);
+    // Completely disjoint lists get one shared note instead of noisy badges.
+    expect(await screen.findByText('No papers appear in both lists.')).toBeInTheDocument();
+    expect(screen.queryByText('Only here')).not.toBeInTheDocument();
 
     // Score incomparability note should be visible
     expect(
@@ -303,5 +303,127 @@ describe('App Component', () => {
     ).toBeInTheDocument();
     // Compare TF-IDF column should not be rendered
     expect(screen.queryByRole('heading', { name: 'TF-IDF' })).not.toBeInTheDocument();
+  });
+
+  it('keeps submitted results visible when k changes and shows an update hint', async () => {
+    window.history.replaceState(null, '', '/?q=BERT&mode=search&model=tfidf');
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith('/health')) return jsonResponse(mockHealth);
+      if (url.endsWith('/methods')) return jsonResponse(mockMethods);
+      if (url.endsWith('/search') && init?.body) return jsonResponse(makeMockSearchResponse('tfidf', 'k-paper', 'Kept Result'));
+      return jsonResponse({});
+    }));
+    render(<App />);
+    expect(await screen.findByText('Kept Result')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Results (k):'), { target: { value: '10' } });
+    expect(screen.getByText('Kept Result')).toBeInTheDocument();
+    expect(screen.getByText('Settings changed, press Search to update.')).toBeInTheDocument();
+  });
+
+  it('restores URL state on popstate and runs only the requested search', async () => {
+    window.history.replaceState(null, '', '/?q=first&mode=compare&model=sbert-mpnet&k=5');
+    const searches: Array<{ query: string; method: string }> = [];
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith('/health')) return jsonResponse(mockHealth);
+      if (url.endsWith('/methods')) return jsonResponse(mockMethods);
+      if (url.endsWith('/search') && init?.body) {
+        const body = JSON.parse(String(init.body)) as { query: string; method: string };
+        searches.push(body);
+        return jsonResponse(makeMockSearchResponse(body.method, `${body.query}-${body.method}`, `${body.query} result`));
+      }
+      return jsonResponse({});
+    }));
+    render(<App />);
+    await screen.findAllByText('first result');
+    expect(searches).toHaveLength(2);
+    window.history.replaceState(null, '', '/?q=second&mode=search&model=tfidf&k=10');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    expect(await screen.findByText('second result')).toBeInTheDocument();
+    expect(searches).toHaveLength(3);
+    expect(screen.getByRole('tab', { name: 'Search' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('automatically reruns a non-empty query while switching modes', async () => {
+    window.history.replaceState(null, '', '/?q=switching&mode=search&model=tfidf&k=5');
+    const methods: string[] = [];
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith('/health')) return jsonResponse(mockHealth);
+      if (url.endsWith('/methods')) return jsonResponse(mockMethods);
+      if (url.endsWith('/search') && init?.body) {
+        const body = JSON.parse(String(init.body)) as { method: string };
+        methods.push(body.method); return jsonResponse(makeMockSearchResponse(body.method, `${body.method}-paper`, `${body.method} result`));
+      }
+      return jsonResponse({});
+    }));
+    render(<App />);
+    await screen.findByText('tfidf result');
+    fireEvent.click(screen.getByRole('tab', { name: 'Compare' }));
+    await screen.findByText('sbert-mpnet result');
+    expect(methods).toEqual(['tfidf', 'tfidf', 'sbert-mpnet']);
+    fireEvent.click(screen.getByRole('tab', { name: 'Search' }));
+    await waitFor(() => expect(methods).toHaveLength(4));
+  });
+
+  it('shows the character counter only above 400 characters', async () => {
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith('/health')) return jsonResponse(mockHealth);
+      if (url.endsWith('/methods')) return jsonResponse(mockMethods);
+      return jsonResponse({});
+    }));
+    render(<App />);
+    const input = await screen.findByRole('textbox');
+    fireEvent.change(input, { target: { value: 'a'.repeat(400) } });
+    expect(screen.queryByText('400/500 characters')).not.toBeInTheDocument();
+    fireEvent.change(input, { target: { value: 'a'.repeat(401) } });
+    expect(screen.getByText('401/500 characters')).toBeInTheDocument();
+  });
+
+  it('puts both columns into loading and ignores late responses from an older search', async () => {
+    window.history.replaceState(null, '', '/?q=older&mode=compare&model=sbert-mpnet&k=5');
+    const resolvers: Array<(response: Response) => void> = [];
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith('/health')) return jsonResponse(mockHealth);
+      if (url.endsWith('/methods')) return jsonResponse(mockMethods);
+      if (url.endsWith('/search') && init?.body) {
+        return new Promise<Response>((resolve) => resolvers.push(resolve));
+      }
+      return jsonResponse({});
+    }));
+    render(<App />);
+    expect(await screen.findByLabelText('Loading TF-IDF results')).toBeInTheDocument();
+    expect(screen.getByLabelText('Loading Sentence-BERT MPNet results')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'BERT' }));
+    await waitFor(() => expect(resolvers).toHaveLength(4));
+    resolvers[2](await jsonResponse(makeMockSearchResponse('tfidf', 'new-tfidf', 'New TF-IDF')));
+    resolvers[3](await jsonResponse(makeMockSearchResponse('sbert-mpnet', 'new-sbert', 'New SBERT')));
+    expect(await screen.findByText('New TF-IDF')).toBeInTheDocument();
+    resolvers[0](await jsonResponse(makeMockSearchResponse('tfidf', 'old-tfidf', 'Old TF-IDF')));
+    resolvers[1](await jsonResponse(makeMockSearchResponse('sbert-mpnet', 'old-sbert', 'Old SBERT')));
+    await waitFor(() => expect(screen.queryByText('Old TF-IDF')).not.toBeInTheDocument());
+    expect(screen.getByText('New SBERT')).toBeInTheDocument();
+  });
+
+  it('keeps only-here badges for partially overlapping compare results', async () => {
+    window.history.replaceState(null, '', '/?q=overlap&mode=compare');
+    const response = (method: string, ids: string[]) => ({
+      query: 'overlap', method, k: 5, took_ms: 1,
+      results: ids.map((id, index) => ({ rank: index + 1, score: 0.5, id, title: id, snippet: id, categories: [], year: 2024 })),
+    });
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith('/health')) return jsonResponse(mockHealth);
+      if (url.endsWith('/methods')) return jsonResponse(mockMethods);
+      const method = JSON.parse(String(init?.body ?? '{}')).method;
+      if (url.endsWith('/search')) return jsonResponse(method === 'tfidf' ? response(method, ['shared', 'sparse-only']) : response(method, ['shared', 'dense-only']));
+      return jsonResponse({});
+    }));
+    render(<App />);
+    expect((await screen.findAllByText('Only here'))).toHaveLength(2);
+    expect(screen.queryByText('No papers appear in both lists.')).not.toBeInTheDocument();
   });
 });
