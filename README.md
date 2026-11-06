@@ -22,6 +22,26 @@ Build the arXiv corpus and at least one saved SBERT index as described below, th
 
 Swagger UI is available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs). The API loads the corpus and builds TF-IDF once at startup, then loads only SBERT indexes already present on disk. A missing SBERT index leaves its method unavailable; the server log prints the command to create it.
 
+## Frontend
+
+The React/Vite frontend provides single-method search and side-by-side TF-IDF/Sentence-BERT comparison. It reads `VITE_API_BASE_URL` (default: `http://127.0.0.1:8000`); copy `frontend/.env.example` to `frontend/.env` only when a different API URL is needed.
+
+Run the API from the repository root in one terminal:
+
+```powershell
+.venv\Scripts\python.exe -m uvicorn backend.app.api.main:app --port 8000
+```
+
+Then run the UI in another:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open the Vite URL (normally `http://127.0.0.1:5173`). Use `npm test` for frontend tests and `npm run build` for a strict TypeScript production build.
+
 Endpoints:
 
 - `GET /health` reports readiness, document count, methods, device, and API version.
