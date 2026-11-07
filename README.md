@@ -1,5 +1,7 @@
 # Semantic Document Search Engine
 
+[![CI](https://github.com/Ram0kr0singh/semantic-search-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/Ram0kr0singh/semantic-search-engine/actions/workflows/ci.yml)
+
 Search academic papers by meaning, with a TF-IDF baseline and Sentence-BERT
 retrieval.
 
