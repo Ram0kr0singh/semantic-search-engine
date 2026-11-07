@@ -8,10 +8,34 @@ const runs: EvaluationRun[] = [
 ];
 
 describe('evaluation metric highlighting', () => {
-  it('marks the highest value and includes ties', () => {
-    expect(isBestMetric(runs[1], runs, 'ndcg_at_10')).toBe(true);
-    expect(isBestMetric(runs[0], runs, 'ndcg_at_10')).toBe(false);
-    expect(isBestMetric(runs[0], runs, 'recall_at_100')).toBe(true);
-    expect(isBestMetric(runs[1], runs, 'recall_at_100')).toBe(true);
+  it('marks the highest value for higher-is-better metrics', () => {
+    expect(isBestMetric(runs[1], runs, 'ndcg_at_10', 'higher')).toBe(true);
+    expect(isBestMetric(runs[0], runs, 'ndcg_at_10', 'higher')).toBe(false);
+  });
+
+  it('marks the lowest value for lower-is-better metrics', () => {
+    expect(isBestMetric(runs[0], runs, 'index_build_seconds', 'lower')).toBe(true);
+    expect(isBestMetric(runs[1], runs, 'index_build_seconds', 'lower')).toBe(false);
+  });
+
+  it('marks all ties for higher-is-better metrics', () => {
+    expect(isBestMetric(runs[0], runs, 'recall_at_100', 'higher')).toBe(true);
+    expect(isBestMetric(runs[1], runs, 'recall_at_100', 'higher')).toBe(true);
+  });
+
+  it('marks all ties for lower-is-better metrics', () => {
+    const tiedRuns = runs.map((run) => ({ ...run, average_query_latency_ms: 1 }));
+    expect(isBestMetric(tiedRuns[0], tiedRuns, 'average_query_latency_ms', 'lower')).toBe(true);
+    expect(isBestMetric(tiedRuns[1], tiedRuns, 'average_query_latency_ms', 'lower')).toBe(true);
+  });
+
+  it('marks a single numeric row as best', () => {
+    expect(isBestMetric(runs[0], [runs[0]], 'ndcg_at_10', 'higher')).toBe(true);
+  });
+
+  it('ignores missing metric values', () => {
+    const missingValue = { ...runs[0], average_query_latency_ms: undefined };
+    expect(isBestMetric(missingValue, [missingValue, runs[1]], 'average_query_latency_ms', 'lower')).toBe(false);
+    expect(isBestMetric(runs[1], [missingValue, runs[1]], 'average_query_latency_ms', 'lower')).toBe(true);
   });
 });

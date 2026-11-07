@@ -99,13 +99,43 @@ def test_allowed_origin_receives_cors_header(client: TestClient) -> None:
     assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
 
 
-def test_evaluation_snapshot_states(client: TestClient, tmp_path, monkeypatch) -> None:
+def test_evaluation_returns_standard_error_for_missing_snapshot(client: TestClient, tmp_path, monkeypatch) -> None:
     snapshot = tmp_path / "summary.json"
     monkeypatch.setenv("EVALUATION_SNAPSHOT_PATH", str(snapshot))
-    missing = client.get("/evaluation")
-    assert missing.status_code == 404
-    assert missing.json()["error"]["details"]["build_command"] == "python -m scripts.export_results"
-    snapshot.write_text(json.dumps({"runs": [], "hardware_note": "test", "generated_at": "now"}))
-    assert client.get("/evaluation").json()["hardware_note"] == "test"
+    response = client.get("/evaluation")
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "error": {
+            "code": "evaluation_snapshot_missing",
+            "message": "Evaluation snapshot is not available.",
+            "details": {"build_command": "python -m scripts.export_results"},
+        }
+    }
+
+
+def test_evaluation_returns_error_for_malformed_snapshot(client: TestClient, tmp_path, monkeypatch) -> None:
+    snapshot = tmp_path / "summary.json"
     snapshot.write_text("not JSON")
-    assert client.get("/evaluation").json()["error"]["code"] == "evaluation_snapshot_invalid"
+    monkeypatch.setenv("EVALUATION_SNAPSHOT_PATH", str(snapshot))
+    response = client.get("/evaluation")
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "error": {
+            "code": "evaluation_snapshot_invalid",
+            "message": "Evaluation snapshot is invalid.",
+        }
+    }
+
+
+def test_evaluation_returns_valid_snapshot(client: TestClient, tmp_path, monkeypatch) -> None:
+    snapshot = tmp_path / "summary.json"
+    payload = {"runs": [], "hardware_note": "test", "generated_at": "now"}
+    snapshot.write_text(json.dumps(payload))
+    monkeypatch.setenv("EVALUATION_SNAPSHOT_PATH", str(snapshot))
+
+    response = client.get("/evaluation")
+
+    assert response.status_code == 200
+    assert response.json() == payload
