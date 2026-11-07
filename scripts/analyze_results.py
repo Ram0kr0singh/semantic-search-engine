@@ -10,7 +10,7 @@ from typing import Any, Sequence
 import numpy as np
 
 
-PAIRS = (("BM25", "TF-IDF"), ("MiniLM", "BM25"), ("MPNet", "BM25"), ("MPNet", "MiniLM"))
+BASE_PAIRS = (("BM25", "TF-IDF"), ("MiniLM", "BM25"), ("MPNet", "BM25"), ("MPNet", "MiniLM"))
 METRICS = ("ndcg_at_10", "recall_at_100")
 
 
@@ -19,10 +19,12 @@ def method_label(payload: dict[str, Any]) -> str:
     if payload["method"] in {"bm25", "tfidf"}:
         return {"bm25": "BM25", "tfidf": "TF-IDF"}[payload["method"]]
     model = str(payload.get("model", "")).lower()
+    prefix = "Hybrid (" if payload["method"] == "hybrid" else ""
+    suffix = ")" if payload["method"] == "hybrid" else ""
     if "minilm" in model:
-        return "MiniLM"
+        return f"{prefix}MiniLM{suffix}"
     if "mpnet" in model:
-        return "MPNet"
+        return f"{prefix}MPNet{suffix}"
     raise ValueError(f"Unsupported SBERT model in per-query file: {payload.get('model')}")
 
 
@@ -109,13 +111,24 @@ def load_runs(per_query_dir: Path) -> dict[str, dict[str, dict[str, dict[str, An
     return runs
 
 
+def comparison_pairs(methods: dict[str, object]) -> tuple[tuple[str, str], ...]:
+    """Return the fixed baseline family plus available pre-specified hybrids."""
+    pairs = list(BASE_PAIRS)
+    for dense in ("MPNet", "MiniLM"):
+        hybrid = f"Hybrid ({dense})"
+        if hybrid in methods:
+            pairs.extend(((hybrid, "BM25"), (hybrid, dense)))
+    return tuple(pairs)
+
+
 def analysis(runs: dict[str, dict[str, dict[str, dict[str, Any]]]]) -> dict[str, Any]:
     """Build all requested comparisons, errors, and query-property breakdowns."""
-    output: dict[str, Any] = {"method": {"bootstrap_resamples": 10_000, "seed": 20261107, "confidence_interval": "2.5th and 97.5th percentiles of paired bootstrap means", "p_value": "two-sided centered paired bootstrap with add-one correction: resample differences centered at their observed mean; p = (count_extreme + 1) / (resamples + 1), where count_extreme is the number of null bootstrap means with absolute value at least the observed absolute mean", "holm": "Holm-Bonferroni adjustment across the eight dataset-pair comparisons separately for each metric"}, "datasets": {}}
+    output: dict[str, Any] = {"method": {"bootstrap_resamples": 10_000, "seed": 20261107, "confidence_interval": "2.5th and 97.5th percentiles of paired bootstrap means", "p_value": "two-sided centered paired bootstrap with add-one correction: resample differences centered at their observed mean; p = (count_extreme + 1) / (resamples + 1), where count_extreme is the number of null bootstrap means with absolute value at least the observed absolute mean", "holm": "Holm-Bonferroni adjustment across the complete available comparison family separately for each metric"}, "datasets": {}}
     pending: dict[str, list[dict[str, Any]]] = {metric: [] for metric in METRICS}
     rng = np.random.default_rng(20261107)
     for dataset, methods in sorted(runs.items()):
-        required = {method for pair in PAIRS for method in pair}
+        pairs = comparison_pairs(methods)
+        required = {method for pair in pairs for method in pair}
         missing = required - methods.keys()
         if missing:
             raise ValueError(f"{dataset} is missing per-query runs for: {', '.join(sorted(missing))}")
@@ -125,7 +138,7 @@ def analysis(runs: dict[str, dict[str, dict[str, dict[str, Any]]]]) -> dict[str,
         dataset_output: dict[str, Any] = {"query_count": len(ids), "comparisons": {}, "error_analysis": {}, "breakdowns": breakdown({method: {qid: row for qid, row in rows.items() if qid in ids} for method, rows in methods.items()})}
         for metric in METRICS:
             entries = []
-            for left, right in PAIRS:
+            for left, right in pairs:
                 differences = [methods[left][qid][metric] - methods[right][qid][metric] for qid in sorted(ids)]
                 entry = {"method_a": left, "method_b": right, "metric": metric, **paired_bootstrap(differences, rng), **win_loss_tie(differences)}
                 entries.append(entry); pending[metric].append(entry)
@@ -151,6 +164,20 @@ def analysis(runs: dict[str, dict[str, dict[str, dict[str, Any]]]]) -> dict[str,
                 "examples": [error_entry(qid, margin) for qid, margin in ranked[:10]],
             }
         dataset_output["error_analysis"] = error_analysis
+        hybrid_mpnet = "Hybrid (MPNet)"
+        if hybrid_mpnet in methods:
+            hybrid_counts = {"beats_both": 0, "loses_to_both": 0, "between_or_tied": 0}
+            for qid in ids:
+                hybrid = methods[hybrid_mpnet][qid]["ndcg_at_10"]
+                bm25 = methods["BM25"][qid]["ndcg_at_10"]
+                mpnet = methods["MPNet"][qid]["ndcg_at_10"]
+                if hybrid > bm25 and hybrid > mpnet:
+                    hybrid_counts["beats_both"] += 1
+                elif hybrid < bm25 and hybrid < mpnet:
+                    hybrid_counts["loses_to_both"] += 1
+                else:
+                    hybrid_counts["between_or_tied"] += 1
+            dataset_output["hybrid_mpnet_vs_components"] = hybrid_counts
         output["datasets"][dataset] = dataset_output
     for metric, entries in pending.items():
         adjusted = holm_adjust([entry["p_value"] for entry in entries])
@@ -167,11 +194,16 @@ def markdown(report: dict[str, Any]) -> str:
         return str(value) if value is not None else "not in top 100"
     for dataset, data in report["datasets"].items():
         lines += [f"## {dataset}", "", "### Paired comparisons", ""]
+        if any(item["method_a"].startswith("Hybrid (") for entries in data["comparisons"].values() for item in entries):
+            lines += ["The available hybrid comparisons are included in the Holm correction family, so adjusted p-values for the earlier comparisons can differ from the preceding non-hybrid report.", ""]
         for metric, entries in data["comparisons"].items():
             lines += [f"#### {metric}", "", "| Comparison (A − B) | Mean difference | 95% CI | p-value | Holm p-value | A wins | B wins | Ties |", "| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |"]
             for item in entries:
                 lines.append(f"| {item['method_a']} − {item['method_b']} | {item['mean_difference']:.6f} | [{item['ci_low']:.6f}, {item['ci_high']:.6f}] | {format_p_value(item['p_value'])} | {format_p_value(item['holm_adjusted_p_value'])} | {item['wins']} | {item['losses']} | {item['ties']} |")
             lines.append("")
+        if "hybrid_mpnet_vs_components" in data:
+            counts = data["hybrid_mpnet_vs_components"]
+            lines += ["### Hybrid (MPNet) vs BM25 and MPNet", "", "| Outcome | Queries |", "| --- | ---: |", f"| Hybrid beats both | {counts['beats_both']} |", f"| Hybrid loses to both | {counts['loses_to_both']} |", f"| Hybrid is between or tied | {counts['between_or_tied']} |", ""]
         lines += ["### Error analysis: BM25 vs MPNet", "", "The examples are illustrative, not a random sample. For each direction, the 10 examples with the largest nDCG@10 margins are selected; ties are broken by ascending query ID.", "", "| Direction | Largest margin | Queries at largest margin | BM25 total wins | MPNet total wins |", "| --- | ---: | ---: | ---: | ---: |"]
         for direction in ("bm25_over_mpnet", "mpnet_over_bm25"):
             summary = data["error_analysis"][direction]
@@ -186,7 +218,7 @@ def markdown(report: dict[str, Any]) -> str:
             if dimension == "omitted_relevant_document_buckets":
                 continue
             if groups:
-                methods = ("TF-IDF", "BM25", "MiniLM", "MPNet")
+                methods = tuple(next(iter(groups.values()))["mean_ndcg_at_10"])
                 header = ["Bucket", "Queries", *methods]
                 separator = ["---", *(["---:"] * (len(header) - 1))]
                 lines += [

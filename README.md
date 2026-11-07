@@ -61,8 +61,9 @@ links are listed here.
 
 ## Features
 
-- TF-IDF and BM25 keyword retrieval, plus Sentence-BERT retrieval with cosine
-  similarity for normalized dense embeddings and FAISS inner-product search.
+- TF-IDF and BM25 keyword retrieval, Sentence-BERT retrieval with cosine
+  similarity for normalized dense embeddings and FAISS inner-product search,
+  and BM25 + Sentence-BERT Hybrid (RRF) retrieval.
 - Evaluation harness reporting Recall@1/5/10/100, MRR@10, nDCG@10, index build
   time, and average query latency.
 - Registry and loaders for BEIR SciFact and FiQA.
@@ -247,6 +248,7 @@ python -m scripts.evaluate --dataset scifact --method bm25 --save-per-query
 python -m scripts.evaluate --dataset fiqa --method bm25 --save-per-query
 python -m scripts.evaluate --dataset fiqa --method sbert --model sentence-transformers/all-mpnet-base-v2 --save-per-query
 python -m scripts.evaluate --dataset scifact --method sbert --model sentence-transformers/all-mpnet-base-v2 --save-per-query
+python -m scripts.evaluate --dataset all --method hybrid --model sentence-transformers/all-mpnet-base-v2 --save-per-query
 ```
 
 Reports are written to `results/`. Export validated reports to update the
@@ -279,6 +281,16 @@ python -m scripts.analyze_results
 The generated report is [docs/analysis/analysis.md](docs/analysis/analysis.md).
 It is intentionally generated only from per-query benchmark runs; do not copy
 aggregate numbers into it manually.
+
+The hybrid uses Reciprocal Rank Fusion (RRF), summing `1 / (60 + rank)` for
+each component's top 100 results, with deterministic ties resolved by best
+component rank and then document ID. This is the formula and `k = 60` reported
+by [Cormack, Clarke, and Büttcher (SIGIR 2009)](https://doi.org/10.1145/1571941.1572114).
+The BM25 + MiniLM and BM25 + MPNet configurations, RRF constant, and candidate
+depth were fixed in advance; they are not tuned on benchmark test queries.
+Hybrid index time is the sum of its BM25 and Sentence-BERT component index
+times. Query latency measures the end-to-end hybrid search, including both
+component searches and fusion.
 
 In the latest committed snapshot, indexing FiQA with MPNet took 422.38 seconds
 on the noted laptop GPU. Index-build timings vary between runs on the same

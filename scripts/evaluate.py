@@ -12,6 +12,7 @@ from backend.app.data.beir import BeirDataset, dataset_names, load_dataset
 from backend.app.evaluation.runner import EvaluationReport, PerQueryMetrics, evaluate, evaluate_with_per_query
 from backend.app.retrieval.base import Retriever
 from backend.app.retrieval.bm25 import BM25Retriever
+from backend.app.retrieval.hybrid import HybridRetriever
 from backend.app.retrieval.sbert import SentenceBertRetriever
 from backend.app.retrieval.tfidf import TfidfRetriever
 
@@ -21,18 +22,20 @@ def build_retriever(method: str, model_name: str) -> Retriever:
     registry: dict[str, type[Retriever]] = {"tfidf": TfidfRetriever, "bm25": BM25Retriever}
     if method == "sbert":
         return SentenceBertRetriever(model_name=model_name)
+    if method == "hybrid":
+        return HybridRetriever([BM25Retriever(), SentenceBertRetriever(model_name=model_name)])
     try:
         return registry[method]()
     except KeyError as exc:
-        methods = (*registry, "sbert")
+        methods = (*registry, "sbert", "hybrid")
         raise ValueError(f"Unknown method '{method}'. Available methods: {', '.join(methods)}") from exc
 
 
 def result_filename(dataset: str, method: str, model_name: str | None = None) -> str:
     """Return a collision-resistant, filesystem-safe JSON report filename."""
-    if method == "sbert":
+    if method in {"sbert", "hybrid"}:
         if not model_name:
-            raise ValueError("A Sentence-BERT result filename requires a model name.")
+            raise ValueError("A dense or hybrid result filename requires a model name.")
         model_slug = re.sub(r"[^A-Za-z0-9._-]+", "-", model_name.rsplit("/", 1)[-1]).strip("-._").lower()
         return f"{dataset}_{method}_{model_slug}.json"
     return f"{dataset}_{method}.json"
@@ -105,7 +108,7 @@ def main() -> None:
     parser.add_argument(
         "--method",
         default="tfidf",
-        choices=("tfidf", "bm25", "sbert", "all"),
+        choices=("tfidf", "bm25", "sbert", "hybrid", "all"),
         help="Retriever to evaluate, or all registered retrievers.",
     )
     parser.add_argument(
@@ -125,7 +128,7 @@ def main() -> None:
     args = parser.parse_args()
 
     args.results_dir.mkdir(parents=True, exist_ok=True)
-    methods = ("tfidf", "bm25", "sbert") if args.method == "all" else (args.method,)
+    methods = ("tfidf", "bm25", "sbert", "hybrid") if args.method == "all" else (args.method,)
     names = dataset_names() if args.dataset == "all" else (args.dataset,)
     for name in names:
         dataset = load_dataset(name, args.data_dir)
@@ -134,13 +137,26 @@ def main() -> None:
         # evaluate starts its index timer. That keeps index timings comparable.
         reports: dict[str, EvaluationReport] = {}
         per_query: dict[str, list[PerQueryMetrics]] = {}
+        instances: dict[str, Retriever] = {}
         for method in methods:
-            if args.save_per_query:
-                reports[method], per_query[method] = evaluate_with_per_query(
-                    build_retriever(method, args.model), dataset.corpus, dataset.queries, dataset.qrels
+            if method == "hybrid" and args.method == "all":
+                instances[method] = HybridRetriever(
+                    [instances["bm25"], instances["sbert"]], reuse_indexed_components=True
                 )
             else:
-                reports[method] = evaluate(build_retriever(method, args.model), dataset.corpus, dataset.queries, dataset.qrels)
+                instances[method] = build_retriever(method, args.model)
+            if args.save_per_query:
+                reports[method], per_query[method] = evaluate_with_per_query(
+                    instances[method], dataset.corpus, dataset.queries, dataset.qrels,
+                    index_build_seconds_override=(reports["bm25"].index_build_seconds + reports["sbert"].index_build_seconds)
+                    if method == "hybrid" and args.method == "all" else None,
+                )
+            else:
+                reports[method] = evaluate(
+                    instances[method], dataset.corpus, dataset.queries, dataset.qrels,
+                    index_build_seconds_override=(reports["bm25"].index_build_seconds + reports["sbert"].index_build_seconds)
+                    if method == "hybrid" and args.method == "all" else None,
+                )
         if args.method == "all":
             print_comparison(reports)
         else:
@@ -151,10 +167,12 @@ def main() -> None:
             payload = {
                 "method": method,
                 "dataset": name,
-                "model": args.model if method == "sbert" else None,
+                "model": args.model if method in {"sbert", "hybrid"} else None,
                 "generated_at": datetime.now(timezone.utc).isoformat(),
                 **report.to_dict(),
             }
+            if method == "hybrid":
+                payload["fusion"] = {"method": "rrf", "k_rrf": 60, "depth": 100, "components": ["bm25", "sbert"]}
             output_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
             print(f"Saved JSON report: {output_path}")
             if args.save_per_query:
@@ -162,11 +180,13 @@ def main() -> None:
                 query_payload = {
                     "method": method,
                     "dataset": name,
-                    "model": args.model if method == "sbert" else None,
+                    "model": args.model if method in {"sbert", "hybrid"} else None,
                     "generated_at": payload["generated_at"],
                     "query_count": report.query_count,
                     "queries": [item.to_dict() for item in per_query[method]],
                 }
+                if method == "hybrid":
+                    query_payload["fusion"] = payload["fusion"]
                 query_output_path.write_text(json.dumps(query_payload, indent=2) + "\n", encoding="utf-8")
                 print(f"Saved per-query JSON: {query_output_path}")
 

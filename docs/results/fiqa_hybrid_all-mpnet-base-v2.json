@@ -1,0 +1,24 @@
+{
+  "method": "hybrid",
+  "dataset": "fiqa",
+  "model": "sentence-transformers/all-mpnet-base-v2",
+  "generated_at": "2026-11-07T18:31:47.897806+00:00",
+  "query_count": 648,
+  "recall_at_1": 0.1847258579897469,
+  "recall_at_5": 0.39335929416947935,
+  "recall_at_10": 0.48818588390347645,
+  "recall_at_100": 0.7982889495620976,
+  "mrr_at_10": 0.4705436752890457,
+  "ndcg_at_10": 0.39909482729617146,
+  "index_build_seconds": 458.12107140000444,
+  "average_query_latency_ms": 41.74023132742868,
+  "fusion": {
+    "method": "rrf",
+    "k_rrf": 60,
+    "depth": 100,
+    "components": [
+      "bm25",
+      "sbert"
+    ]
+  }
+}

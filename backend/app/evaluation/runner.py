@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from time import perf_counter
 from typing import Mapping
 
@@ -53,9 +53,13 @@ def evaluate(
     corpus: Mapping[str, Mapping[str, str]],
     queries: Mapping[str, str],
     qrels: Mapping[str, Mapping[str, int]],
+    *,
+    index_build_seconds_override: float | None = None,
 ) -> EvaluationReport:
     """Index ``corpus``, execute queries, and aggregate standard retrieval metrics."""
     report, _ = _evaluate(retriever, corpus, queries, qrels, collect_per_query=False)
+    if index_build_seconds_override is not None:
+        report = replace(report, index_build_seconds=index_build_seconds_override)
     return report
 
 
@@ -64,9 +68,13 @@ def evaluate_with_per_query(
     corpus: Mapping[str, Mapping[str, str]],
     queries: Mapping[str, str],
     qrels: Mapping[str, Mapping[str, int]],
+    *,
+    index_build_seconds_override: float | None = None,
 ) -> tuple[EvaluationReport, list[PerQueryMetrics]]:
     """Evaluate once and return the aggregate report and its component query scores."""
     report, per_query = _evaluate(retriever, corpus, queries, qrels, collect_per_query=True)
+    if index_build_seconds_override is not None:
+        report = replace(report, index_build_seconds=index_build_seconds_override)
     assert per_query is not None
     # Keep the report and saved query values inseparable: any future metric change
     # that makes them diverge must fail loudly rather than write misleading output.
@@ -87,6 +95,9 @@ def _evaluate(
     index_start = perf_counter()
     retriever.index(corpus)
     index_build_seconds = perf_counter() - index_start
+    component_index_seconds = getattr(retriever, "component_index_seconds", None)
+    if component_index_seconds is not None:
+        index_build_seconds = component_index_seconds
 
     rankings: dict[str, list[str]] = {}
     query_durations: list[float] = []

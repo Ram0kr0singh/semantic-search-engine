@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
-from scripts.analyze_results import analysis, breakdown, bucket_rows, holm_adjust, markdown, paired_bootstrap, win_loss_tie
+from scripts.analyze_results import analysis, breakdown, bucket_rows, comparison_pairs, holm_adjust, markdown, paired_bootstrap, win_loss_tie
 
 
 def generated_report() -> tuple[dict, str]:
@@ -37,6 +37,13 @@ def test_paired_bootstrap_add_one_correction_when_no_resample_is_extreme() -> No
 def test_holm_and_win_loss_tie() -> None:
     assert holm_adjust([.01, .04, .03]) == [.03, .06, .06]
     assert win_loss_tie([1, -1, 0, 2]) == {"wins": 2, "losses": 1, "ties": 1}
+
+
+def test_hybrid_comparisons_are_added_only_when_available() -> None:
+    pairs = comparison_pairs({"BM25": {}, "TF-IDF": {}, "MiniLM": {}, "MPNet": {}, "Hybrid (MPNet)": {}})
+    assert ("Hybrid (MPNet)", "BM25") in pairs
+    assert ("Hybrid (MPNet)", "MPNet") in pairs
+    assert not any("MiniLM)" in left for left, _ in pairs)
 
 
 def test_error_examples_choose_largest_margin_and_break_ties_by_query_id() -> None:

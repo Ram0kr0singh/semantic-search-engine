@@ -2,7 +2,7 @@
   "method": "sbert",
   "dataset": "fiqa",
   "model": "sentence-transformers/all-MiniLM-L6-v2",
-  "generated_at": "2026-11-07T13:05:33.995402+00:00",
+  "generated_at": "2026-11-07T18:19:57.164570+00:00",
   "query_count": 648,
   "recall_at_1": 0.17140281272225716,
   "recall_at_5": 0.36705632758873497,
@@ -10,6 +10,6 @@
   "recall_at_100": 0.7060569574458463,
   "mrr_at_10": 0.44512235449735443,
   "ndcg_at_10": 0.3686713698407158,
-  "index_build_seconds": 51.44695789999969,
-  "average_query_latency_ms": 14.890097068030032
+  "index_build_seconds": 51.7046379000094,
+  "average_query_latency_ms": 15.282840895249846
 }

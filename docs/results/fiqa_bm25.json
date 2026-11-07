@@ -2,7 +2,7 @@
   "method": "bm25",
   "dataset": "fiqa",
   "model": null,
-  "generated_at": "2026-11-07T13:05:33.984243+00:00",
+  "generated_at": "2026-11-07T18:19:57.154567+00:00",
   "query_count": 648,
   "recall_at_1": 0.0997837895986044,
   "recall_at_5": 0.21629431525264858,
@@ -10,6 +10,6 @@
   "recall_at_100": 0.5131859181627699,
   "mrr_at_10": 0.27620517342739564,
   "ndcg_at_10": 0.22230565495062582,
-  "index_build_seconds": 2.9284573000040837,
-  "average_query_latency_ms": 5.237401543239191
+  "index_build_seconds": 3.175551699998323,
+  "average_query_latency_ms": 7.862202314675942
 }

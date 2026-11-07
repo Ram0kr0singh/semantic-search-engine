@@ -1,0 +1,24 @@
+{
+  "method": "hybrid",
+  "dataset": "fiqa",
+  "model": "sentence-transformers/all-MiniLM-L6-v2",
+  "generated_at": "2026-11-07T18:19:57.175580+00:00",
+  "query_count": 648,
+  "recall_at_1": 0.1503551446838484,
+  "recall_at_5": 0.3293600261192854,
+  "recall_at_10": 0.4093239793471275,
+  "recall_at_100": 0.6955289309455976,
+  "mrr_at_10": 0.40535163139329805,
+  "ndcg_at_10": 0.3320623617854542,
+  "index_build_seconds": 54.880189600007725,
+  "average_query_latency_ms": 29.142891049402497,
+  "fusion": {
+    "method": "rrf",
+    "k_rrf": 60,
+    "depth": 100,
+    "components": [
+      "bm25",
+      "sbert"
+    ]
+  }
+}

@@ -2,7 +2,7 @@
   "method": "sbert",
   "dataset": "scifact",
   "model": "sentence-transformers/all-MiniLM-L6-v2",
-  "generated_at": "2026-11-07T13:02:18.959410+00:00",
+  "generated_at": "2026-11-07T18:15:45.300409+00:00",
   "query_count": 300,
   "recall_at_1": 0.4823333333333333,
   "recall_at_5": 0.7379444444444444,
@@ -10,6 +10,6 @@
   "recall_at_100": 0.925,
   "mrr_at_10": 0.6047248677248678,
   "ndcg_at_10": 0.6450816521455776,
-  "index_build_seconds": 6.697615700002643,
-  "average_query_latency_ms": 6.50496200013246
+  "index_build_seconds": 7.282960299999104,
+  "average_query_latency_ms": 5.573333666252438
 }

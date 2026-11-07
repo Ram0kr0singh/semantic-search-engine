@@ -6,23 +6,41 @@ All values are calculated from the committed per-query snapshots. P-values use a
 
 ### Paired comparisons
 
+The available hybrid comparisons are included in the Holm correction family, so adjusted p-values for the earlier comparisons can differ from the preceding non-hybrid report.
+
 #### ndcg_at_10
 
 | Comparison (A − B) | Mean difference | 95% CI | p-value | Holm p-value | A wins | B wins | Ties |
 | --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
-| BM25 − TF-IDF | 0.073529 | [0.058395, 0.088683] | < 0.0001 | 0.000800 | 204 | 62 | 382 |
-| MiniLM − BM25 | 0.146366 | [0.120807, 0.171598] | < 0.0001 | 0.000800 | 322 | 101 | 225 |
-| MPNet − BM25 | 0.277327 | [0.250523, 0.303535] | < 0.0001 | 0.000800 | 417 | 64 | 167 |
-| MPNet − MiniLM | 0.130961 | [0.111256, 0.151156] | < 0.0001 | 0.000800 | 323 | 93 | 232 |
+| BM25 − TF-IDF | 0.073529 | [0.058395, 0.088683] | < 0.0001 | 0.001600 | 204 | 62 | 382 |
+| MiniLM − BM25 | 0.146366 | [0.120807, 0.171598] | < 0.0001 | 0.001600 | 322 | 101 | 225 |
+| MPNet − BM25 | 0.277327 | [0.250523, 0.303535] | < 0.0001 | 0.001600 | 417 | 64 | 167 |
+| MPNet − MiniLM | 0.130961 | [0.111256, 0.151156] | < 0.0001 | 0.001600 | 323 | 93 | 232 |
+| Hybrid (MPNet) − BM25 | 0.176789 | [0.159728, 0.193841] | < 0.0001 | 0.001600 | 376 | 24 | 248 |
+| Hybrid (MPNet) − MPNet | -0.100538 | [-0.121953, -0.078770] | < 0.0001 | 0.001600 | 144 | 298 | 206 |
+| Hybrid (MiniLM) − BM25 | 0.109757 | [0.094290, 0.125451] | < 0.0001 | 0.001600 | 300 | 52 | 296 |
+| Hybrid (MiniLM) − MiniLM | -0.036609 | [-0.055917, -0.017247] | 0.000600 | 0.005399 | 162 | 215 | 271 |
 
 #### recall_at_100
 
 | Comparison (A − B) | Mean difference | 95% CI | p-value | Holm p-value | A wins | B wins | Ties |
 | --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
-| BM25 − TF-IDF | 0.046082 | [0.025504, 0.066629] | < 0.0001 | 0.000800 | 102 | 48 | 498 |
-| MiniLM − BM25 | 0.192871 | [0.162727, 0.223474] | < 0.0001 | 0.000800 | 259 | 44 | 345 |
-| MPNet − BM25 | 0.306506 | [0.274552, 0.337621] | < 0.0001 | 0.000800 | 335 | 16 | 297 |
-| MPNet − MiniLM | 0.113635 | [0.092937, 0.134509] | < 0.0001 | 0.000800 | 172 | 17 | 459 |
+| BM25 − TF-IDF | 0.046082 | [0.025288, 0.067080] | < 0.0001 | 0.001600 | 102 | 48 | 498 |
+| MiniLM − BM25 | 0.192871 | [0.162705, 0.223314] | < 0.0001 | 0.001600 | 259 | 44 | 345 |
+| MPNet − BM25 | 0.306506 | [0.274954, 0.337818] | < 0.0001 | 0.001600 | 335 | 16 | 297 |
+| MPNet − MiniLM | 0.113635 | [0.093307, 0.134953] | < 0.0001 | 0.001600 | 172 | 17 | 459 |
+| Hybrid (MPNet) − BM25 | 0.285103 | [0.256313, 0.313031] | < 0.0001 | 0.001600 | 321 | 4 | 323 |
+| Hybrid (MPNet) − MPNet | -0.021403 | [-0.035751, -0.007466] | 0.003100 | 0.021698 | 21 | 64 | 563 |
+| Hybrid (MiniLM) − BM25 | 0.182343 | [0.156904, 0.208090] | < 0.0001 | 0.001600 | 231 | 14 | 403 |
+| Hybrid (MiniLM) − MiniLM | -0.010528 | [-0.026220, 0.005057] | 0.185681 | 0.557044 | 45 | 69 | 534 |
+
+### Hybrid (MPNet) vs BM25 and MPNet
+
+| Outcome | Queries |
+| --- | ---: |
+| Hybrid beats both | 115 |
+| Hybrid loses to both | 4 |
+| Hybrid is between or tied | 529 |
 
 ### Error analysis: BM25 vs MPNet
 
@@ -60,19 +78,19 @@ The examples are illustrative, not a random sample. For each direction, the 10 e
 
 #### query_length_tertiles
 
-| Bucket | Queries | TF-IDF | BM25 | MiniLM | MPNet |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| short (2–9 words) | 216 | 0.117880 | 0.192008 | 0.318480 | 0.431259 |
-| medium (9–13 words) | 216 | 0.189110 | 0.260363 | 0.400591 | 0.537693 |
-| long (13–31 words) | 216 | 0.139339 | 0.214546 | 0.386943 | 0.529945 |
+| Bucket | Queries | BM25 | Hybrid (MiniLM) | Hybrid (MPNet) | MiniLM | MPNet | TF-IDF |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| short (2–9 words) | 216 | 0.192008 | 0.293089 | 0.361768 | 0.318480 | 0.431259 | 0.117880 |
+| medium (9–13 words) | 216 | 0.260363 | 0.352725 | 0.432804 | 0.400591 | 0.537693 | 0.189110 |
+| long (13–31 words) | 216 | 0.214546 | 0.350374 | 0.402712 | 0.386943 | 0.529945 | 0.139339 |
 
 #### relevant_documents
 
-| Bucket | Queries | TF-IDF | BM25 | MiniLM | MPNet |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| 1 | 220 | 0.142355 | 0.233324 | 0.388237 | 0.479645 |
-| 2-3 | 287 | 0.151335 | 0.225975 | 0.345864 | 0.516838 |
-| 4+ | 141 | 0.153587 | 0.197646 | 0.384567 | 0.495798 |
+| Bucket | Queries | BM25 | Hybrid (MiniLM) | Hybrid (MPNet) | MiniLM | MPNet | TF-IDF |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 220 | 0.233324 | 0.343069 | 0.400406 | 0.388237 | 0.479645 | 0.142355 |
+| 2-3 | 287 | 0.225975 | 0.326845 | 0.407379 | 0.345864 | 0.516838 | 0.151335 |
+| 4+ | 141 | 0.197646 | 0.325509 | 0.380187 | 0.384567 | 0.495798 | 0.153587 |
 
 Differences whose Holm-adjusted p-value is not below 0.05 are not statistically distinguishable at this bootstrap resolution. Relevant-document buckets with fewer than 20 queries are omitted: none.
 
@@ -80,23 +98,41 @@ Differences whose Holm-adjusted p-value is not below 0.05 are not statistically 
 
 ### Paired comparisons
 
+The available hybrid comparisons are included in the Holm correction family, so adjusted p-values for the earlier comparisons can differ from the preceding non-hybrid report.
+
 #### ndcg_at_10
 
 | Comparison (A − B) | Mean difference | 95% CI | p-value | Holm p-value | A wins | B wins | Ties |
 | --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
-| BM25 − TF-IDF | 0.024544 | [0.003092, 0.046046] | 0.025197 | 0.100790 | 57 | 32 | 211 |
-| MiniLM − BM25 | -0.021219 | [-0.060234, 0.017460] | 0.289971 | 0.869913 | 67 | 74 | 159 |
-| MPNet − BM25 | -0.010604 | [-0.053392, 0.030512] | 0.622738 | 0.869913 | 67 | 66 | 167 |
-| MPNet − MiniLM | 0.010615 | [-0.015431, 0.037066] | 0.430057 | 0.869913 | 56 | 50 | 194 |
+| BM25 − TF-IDF | 0.024544 | [0.003623, 0.045994] | 0.024298 | 0.170083 | 57 | 32 | 211 |
+| MiniLM − BM25 | -0.021219 | [-0.060670, 0.018457] | 0.296570 | 0.889711 | 67 | 74 | 159 |
+| MPNet − BM25 | -0.010604 | [-0.052256, 0.030282] | 0.618038 | 0.889711 | 67 | 66 | 167 |
+| MPNet − MiniLM | 0.010615 | [-0.015313, 0.036447] | 0.423458 | 0.889711 | 56 | 50 | 194 |
+| Hybrid (MPNet) − BM25 | 0.019838 | [-0.006386, 0.046155] | 0.138686 | 0.675932 | 65 | 41 | 194 |
+| Hybrid (MPNet) − MPNet | 0.030442 | [0.002506, 0.058542] | 0.034197 | 0.205179 | 73 | 37 | 190 |
+| Hybrid (MiniLM) − BM25 | 0.018672 | [-0.005355, 0.043004] | 0.135186 | 0.675932 | 60 | 40 | 200 |
+| Hybrid (MiniLM) − MiniLM | 0.039891 | [0.011816, 0.066146] | 0.004700 | 0.037596 | 79 | 34 | 187 |
 
 #### recall_at_100
 
 | Comparison (A − B) | Mean difference | 95% CI | p-value | Holm p-value | A wins | B wins | Ties |
 | --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
-| BM25 − TF-IDF | -0.012333 | [-0.025333, -0.002333] | 0.040596 | 0.081192 | 0 | 5 | 295 |
-| MiniLM − BM25 | 0.045778 | [0.008444, 0.085111] | 0.019198 | 0.057594 | 28 | 11 | 261 |
-| MPNet − BM25 | 0.062444 | [0.021222, 0.104667] | 0.003400 | 0.013599 | 34 | 12 | 254 |
-| MPNet − MiniLM | 0.016667 | [-0.013333, 0.046667] | 0.276272 | 0.276272 | 14 | 9 | 277 |
+| BM25 − TF-IDF | -0.012333 | [-0.025000, -0.002333] | 0.037596 | 0.150385 | 0 | 5 | 295 |
+| MiniLM − BM25 | 0.045778 | [0.008444, 0.084667] | 0.017698 | 0.088491 | 28 | 11 | 261 |
+| MPNet − BM25 | 0.062444 | [0.020997, 0.104333] | 0.002700 | 0.021598 | 34 | 12 | 254 |
+| MPNet − MiniLM | 0.016667 | [-0.013333, 0.048333] | 0.276572 | 0.557044 | 14 | 9 | 277 |
+| Hybrid (MPNet) − BM25 | 0.080778 | [0.049667, 0.113336] | < 0.0001 | 0.001600 | 29 | 1 | 270 |
+| Hybrid (MPNet) − MPNet | 0.018333 | [-0.008333, 0.046667] | 0.197680 | 0.557044 | 12 | 6 | 282 |
+| Hybrid (MiniLM) − BM25 | 0.075111 | [0.046778, 0.106333] | < 0.0001 | 0.001600 | 25 | 0 | 275 |
+| Hybrid (MiniLM) − MiniLM | 0.029333 | [0.006667, 0.053333] | 0.013799 | 0.082792 | 11 | 3 | 286 |
+
+### Hybrid (MPNet) vs BM25 and MPNet
+
+| Outcome | Queries |
+| --- | ---: |
+| Hybrid beats both | 24 |
+| Hybrid loses to both | 1 |
+| Hybrid is between or tied | 275 |
 
 ### Error analysis: BM25 vs MPNet
 
@@ -134,17 +170,17 @@ The examples are illustrative, not a random sample. For each direction, the 10 e
 
 #### query_length_tertiles
 
-| Bucket | Queries | TF-IDF | BM25 | MiniLM | MPNet |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| short (4–10 words) | 100 | 0.645015 | 0.672215 | 0.627275 | 0.638501 |
-| medium (10–14 words) | 100 | 0.608069 | 0.634288 | 0.641810 | 0.638078 |
-| long (14–29 words) | 100 | 0.672189 | 0.692401 | 0.666160 | 0.690512 |
+| Bucket | Queries | BM25 | Hybrid (MiniLM) | Hybrid (MPNet) | MiniLM | MPNet | TF-IDF |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| short (4–10 words) | 100 | 0.672215 | 0.708550 | 0.682710 | 0.627275 | 0.638501 | 0.645015 |
+| medium (10–14 words) | 100 | 0.634288 | 0.643794 | 0.653034 | 0.641810 | 0.638078 | 0.608069 |
+| long (14–29 words) | 100 | 0.692401 | 0.702574 | 0.722672 | 0.666160 | 0.690512 | 0.672189 |
 
 #### relevant_documents
 
-| Bucket | Queries | TF-IDF | BM25 | MiniLM | MPNet |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| 1 | 277 | 0.654534 | 0.676125 | 0.650850 | 0.661799 |
+| Bucket | Queries | BM25 | Hybrid (MiniLM) | Hybrid (MPNet) | MiniLM | MPNet | TF-IDF |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 277 | 0.676125 | 0.688224 | 0.690153 | 0.650850 | 0.661799 | 0.654534 |
 
 Differences whose Holm-adjusted p-value is not below 0.05 are not statistically distinguishable at this bootstrap resolution. Relevant-document buckets with fewer than 20 queries are omitted: 2-3 (18 queries), 4+ (5 queries).
 For SciFact, this leaves a single relevant-document bucket.

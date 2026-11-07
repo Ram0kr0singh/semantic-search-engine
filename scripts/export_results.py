@@ -27,9 +27,11 @@ def validate_run(payload: object, filename: str) -> tuple[dict[str, Any] | None,
         return None, "missing method identity"
     if not isinstance(payload["dataset"], str) or not payload["dataset"].strip() or payload["dataset"].startswith("BEIR "):
         return None, "missing or stale dataset identity"
-    # TF-IDF deliberately has a null model; every dense report needs its concrete model name.
-    if payload["method"] == "sbert" and (not isinstance(payload.get("model"), str) or not payload["model"].strip()):
+    # TF-IDF deliberately has a null model; dense and hybrid reports identify their model.
+    if payload["method"] in {"sbert", "hybrid"} and (not isinstance(payload.get("model"), str) or not payload["model"].strip()):
         return None, "stale SBERT report without a model identity"
+    if payload["method"] == "hybrid" and payload.get("fusion") != {"method": "rrf", "k_rrf": 60, "depth": 100, "components": ["bm25", "sbert"]}:
+        return None, "hybrid report has missing or unsupported fusion settings"
     for field in ("query_count", *METRICS, *TIMINGS):
         value = payload[field]
         if isinstance(value, bool) or not isinstance(value, (int, float)):
@@ -54,8 +56,10 @@ def validate_per_query_run(payload: object, filename: str) -> tuple[dict[str, An
         return None, "missing method identity"
     if not isinstance(payload["dataset"], str) or not payload["dataset"].strip() or payload["dataset"].startswith("BEIR "):
         return None, "missing or stale dataset identity"
-    if payload["method"] == "sbert" and (not isinstance(payload.get("model"), str) or not payload["model"].strip()):
+    if payload["method"] in {"sbert", "hybrid"} and (not isinstance(payload.get("model"), str) or not payload["model"].strip()):
         return None, "stale SBERT report without a model identity"
+    if payload["method"] == "hybrid" and payload.get("fusion") != {"method": "rrf", "k_rrf": 60, "depth": 100, "components": ["bm25", "sbert"]}:
+        return None, "hybrid report has missing or unsupported fusion settings"
     if isinstance(payload["query_count"], bool) or not isinstance(payload["query_count"], int) or payload["query_count"] < 0:
         return None, "query_count must be a non-negative integer"
     queries = payload["queries"]

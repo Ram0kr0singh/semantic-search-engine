@@ -4,7 +4,7 @@
     "seed": 20261107,
     "confidence_interval": "2.5th and 97.5th percentiles of paired bootstrap means",
     "p_value": "two-sided centered paired bootstrap with add-one correction: resample differences centered at their observed mean; p = (count_extreme + 1) / (resamples + 1), where count_extreme is the number of null bootstrap means with absolute value at least the observed absolute mean",
-    "holm": "Holm-Bonferroni adjustment across the eight dataset-pair comparisons separately for each metric"
+    "holm": "Holm-Bonferroni adjustment across the complete available comparison family separately for each metric"
   },
   "datasets": {
     "fiqa": {
@@ -22,7 +22,7 @@
             "wins": 204,
             "losses": 62,
             "ties": 382,
-            "holm_adjusted_p_value": 0.0007999200079992001
+            "holm_adjusted_p_value": 0.0015998400159984002
           },
           {
             "method_a": "MiniLM",
@@ -35,7 +35,7 @@
             "wins": 322,
             "losses": 101,
             "ties": 225,
-            "holm_adjusted_p_value": 0.0007999200079992001
+            "holm_adjusted_p_value": 0.0015998400159984002
           },
           {
             "method_a": "MPNet",
@@ -48,7 +48,7 @@
             "wins": 417,
             "losses": 64,
             "ties": 167,
-            "holm_adjusted_p_value": 0.0007999200079992001
+            "holm_adjusted_p_value": 0.0015998400159984002
           },
           {
             "method_a": "MPNet",
@@ -61,7 +61,59 @@
             "wins": 323,
             "losses": 93,
             "ties": 232,
-            "holm_adjusted_p_value": 0.0007999200079992001
+            "holm_adjusted_p_value": 0.0015998400159984002
+          },
+          {
+            "method_a": "Hybrid (MPNet)",
+            "method_b": "BM25",
+            "metric": "ndcg_at_10",
+            "mean_difference": 0.17678917234554567,
+            "ci_low": 0.159727695129901,
+            "ci_high": 0.19384129489812657,
+            "p_value": 9.999000099990002e-05,
+            "wins": 376,
+            "losses": 24,
+            "ties": 248,
+            "holm_adjusted_p_value": 0.0015998400159984002
+          },
+          {
+            "method_a": "Hybrid (MPNet)",
+            "method_b": "MPNet",
+            "metric": "ndcg_at_10",
+            "mean_difference": -0.10053771376764353,
+            "ci_low": -0.12195348421041033,
+            "ci_high": -0.07877044449480826,
+            "p_value": 9.999000099990002e-05,
+            "wins": 144,
+            "losses": 298,
+            "ties": 206,
+            "holm_adjusted_p_value": 0.0015998400159984002
+          },
+          {
+            "method_a": "Hybrid (MiniLM)",
+            "method_b": "BM25",
+            "metric": "ndcg_at_10",
+            "mean_difference": 0.10975670683482841,
+            "ci_low": 0.09429041362616085,
+            "ci_high": 0.12545059925765353,
+            "p_value": 9.999000099990002e-05,
+            "wins": 300,
+            "losses": 52,
+            "ties": 296,
+            "holm_adjusted_p_value": 0.0015998400159984002
+          },
+          {
+            "method_a": "Hybrid (MiniLM)",
+            "method_b": "MiniLM",
+            "metric": "ndcg_at_10",
+            "mean_difference": -0.036609008055261606,
+            "ci_low": -0.055916512658658324,
+            "ci_high": -0.017246534051911795,
+            "p_value": 0.0005999400059994001,
+            "wins": 162,
+            "losses": 215,
+            "ties": 271,
+            "holm_adjusted_p_value": 0.0053994600539946005
           }
         ],
         "recall_at_100": [
@@ -70,52 +122,104 @@
             "method_b": "TF-IDF",
             "metric": "recall_at_100",
             "mean_difference": 0.04608173462340129,
-            "ci_low": 0.025503959132431357,
-            "ci_high": 0.06662857172405781,
+            "ci_low": 0.025287525724447018,
+            "ci_high": 0.06707996521653929,
             "p_value": 9.999000099990002e-05,
             "wins": 102,
             "losses": 48,
             "ties": 498,
-            "holm_adjusted_p_value": 0.0007999200079992001
+            "holm_adjusted_p_value": 0.0015998400159984002
           },
           {
             "method_a": "MiniLM",
             "method_b": "BM25",
             "metric": "recall_at_100",
             "mean_difference": 0.19287103928307633,
-            "ci_low": 0.1627265164533683,
-            "ci_high": 0.22347398282872818,
+            "ci_low": 0.16270543510416197,
+            "ci_high": 0.22331401259063294,
             "p_value": 9.999000099990002e-05,
             "wins": 259,
             "losses": 44,
             "ties": 345,
-            "holm_adjusted_p_value": 0.0007999200079992001
+            "holm_adjusted_p_value": 0.0015998400159984002
           },
           {
             "method_a": "MPNet",
             "method_b": "BM25",
             "metric": "recall_at_100",
             "mean_difference": 0.3065057884502329,
-            "ci_low": 0.2745521582327138,
-            "ci_high": 0.33762113561592727,
+            "ci_low": 0.2749538874191652,
+            "ci_high": 0.33781839067139996,
             "p_value": 9.999000099990002e-05,
             "wins": 335,
             "losses": 16,
             "ties": 297,
-            "holm_adjusted_p_value": 0.0007999200079992001
+            "holm_adjusted_p_value": 0.0015998400159984002
           },
           {
             "method_a": "MPNet",
             "method_b": "MiniLM",
             "metric": "recall_at_100",
             "mean_difference": 0.11363474916715656,
-            "ci_low": 0.09293731934646286,
-            "ci_high": 0.13450923476386442,
+            "ci_low": 0.09330701609347443,
+            "ci_high": 0.13495342813051145,
             "p_value": 9.999000099990002e-05,
             "wins": 172,
             "losses": 17,
             "ties": 459,
-            "holm_adjusted_p_value": 0.0007999200079992001
+            "holm_adjusted_p_value": 0.0015998400159984002
+          },
+          {
+            "method_a": "Hybrid (MPNet)",
+            "method_b": "BM25",
+            "metric": "recall_at_100",
+            "mean_difference": 0.2851030313993277,
+            "ci_low": 0.25631340774280587,
+            "ci_high": 0.3130311649727159,
+            "p_value": 9.999000099990002e-05,
+            "wins": 321,
+            "losses": 4,
+            "ties": 323,
+            "holm_adjusted_p_value": 0.0015998400159984002
+          },
+          {
+            "method_a": "Hybrid (MPNet)",
+            "method_b": "MPNet",
+            "metric": "recall_at_100",
+            "mean_difference": -0.021402757050905198,
+            "ci_low": -0.035750840380470016,
+            "ci_high": -0.007466058568489127,
+            "p_value": 0.0030996900309969004,
+            "wins": 21,
+            "losses": 64,
+            "ties": 563,
+            "holm_adjusted_p_value": 0.0216978302169783
+          },
+          {
+            "method_a": "Hybrid (MiniLM)",
+            "method_b": "BM25",
+            "metric": "recall_at_100",
+            "mean_difference": 0.1823430127828276,
+            "ci_low": 0.15690379504326263,
+            "ci_high": 0.20809018120939415,
+            "p_value": 9.999000099990002e-05,
+            "wins": 231,
+            "losses": 14,
+            "ties": 403,
+            "holm_adjusted_p_value": 0.0015998400159984002
+          },
+          {
+            "method_a": "Hybrid (MiniLM)",
+            "method_b": "MiniLM",
+            "metric": "recall_at_100",
+            "mean_difference": -0.010528026500248722,
+            "ci_low": -0.026219962522045854,
+            "ci_high": 0.005056989478285771,
+            "p_value": 0.18568143185681432,
+            "wins": 45,
+            "losses": 69,
+            "ties": 534,
+            "holm_adjusted_p_value": 0.557044295570443
           }
         ]
       },
@@ -303,6 +407,8 @@
             "query_count": 216,
             "mean_ndcg_at_10": {
               "BM25": 0.19200821453540934,
+              "Hybrid (MiniLM)": 0.29308874062917767,
+              "Hybrid (MPNet)": 0.3617683207598336,
               "MiniLM": 0.3184798054900835,
               "MPNet": 0.4312592339636832,
               "TF-IDF": 0.11787999171046463
@@ -316,6 +422,8 @@
             "query_count": 216,
             "mean_ndcg_at_10": {
               "BM25": 0.2603627761420218,
+              "Hybrid (MiniLM)": 0.35272468525818873,
+              "Hybrid (MPNet)": 0.432804333453869,
               "MiniLM": 0.4005912132885841,
               "MPNet": 0.537693259166422,
               "TF-IDF": 0.18911011032311312
@@ -329,6 +437,8 @@
             "query_count": 216,
             "mean_ndcg_at_10": {
               "BM25": 0.21454597417444626,
+              "Hybrid (MiniLM)": 0.3503736594689961,
+              "Hybrid (MPNet)": 0.4027118276748118,
               "MiniLM": 0.38694309074347977,
               "MPNet": 0.5299451300613397,
               "TF-IDF": 0.13933947375675781
@@ -344,6 +454,8 @@
             "query_count": 220,
             "mean_ndcg_at_10": {
               "BM25": 0.23332371330950077,
+              "Hybrid (MiniLM)": 0.34306901801956874,
+              "Hybrid (MPNet)": 0.4004059622897418,
               "MiniLM": 0.38823682363737844,
               "MPNet": 0.4796454500172677,
               "TF-IDF": 0.1423551147996287
@@ -353,6 +465,8 @@
             "query_count": 287,
             "mean_ndcg_at_10": {
               "BM25": 0.22597457281215144,
+              "Hybrid (MiniLM)": 0.32684468591503396,
+              "Hybrid (MPNet)": 0.4073789732513139,
               "MiniLM": 0.34586397537043,
               "MPNet": 0.5168375797954932,
               "TF-IDF": 0.15133541993320135
@@ -362,6 +476,8 @@
             "query_count": 141,
             "mean_ndcg_at_10": {
               "BM25": 0.19764641902714808,
+              "Hybrid (MiniLM)": 0.3255092313124431,
+              "Hybrid (MPNet)": 0.38018702880176475,
               "MiniLM": 0.3845672732287032,
               "MPNet": 0.4957978879733808,
               "TF-IDF": 0.15358721697847783
@@ -369,6 +485,11 @@
           }
         },
         "omitted_relevant_document_buckets": {}
+      },
+      "hybrid_mpnet_vs_components": {
+        "beats_both": 115,
+        "loses_to_both": 4,
+        "between_or_tied": 529
       }
     },
     "scifact": {
@@ -380,52 +501,104 @@
             "method_b": "TF-IDF",
             "metric": "ndcg_at_10",
             "mean_difference": 0.02454353339073347,
-            "ci_low": 0.0030919390461383377,
-            "ci_high": 0.046045519262918874,
-            "p_value": 0.025197480251974803,
+            "ci_low": 0.003622564400131775,
+            "ci_high": 0.04599400144620781,
+            "p_value": 0.024297570242975703,
             "wins": 57,
             "losses": 32,
             "ties": 211,
-            "holm_adjusted_p_value": 0.10078992100789921
+            "holm_adjusted_p_value": 0.1700829917008299
           },
           {
             "method_a": "MiniLM",
             "method_b": "BM25",
             "metric": "ndcg_at_10",
             "mean_difference": -0.021219331782347802,
-            "ci_low": -0.06023403630740815,
-            "ci_high": 0.017460231705300196,
-            "p_value": 0.28997100289971,
+            "ci_low": -0.06067002529124603,
+            "ci_high": 0.01845709608163109,
+            "p_value": 0.29657034296570345,
             "wins": 67,
             "losses": 74,
             "ties": 159,
-            "holm_adjusted_p_value": 0.86991300869913
+            "holm_adjusted_p_value": 0.8897110288971104
           },
           {
             "method_a": "MPNet",
             "method_b": "BM25",
             "metric": "ndcg_at_10",
             "mean_difference": -0.010604067434514548,
-            "ci_low": -0.05339180288728003,
-            "ci_high": 0.030512427737197857,
-            "p_value": 0.6227377262273772,
+            "ci_low": -0.052256268206567064,
+            "ci_high": 0.030282234719414013,
+            "p_value": 0.6180381961803819,
             "wins": 67,
             "losses": 66,
             "ties": 167,
-            "holm_adjusted_p_value": 0.86991300869913
+            "holm_adjusted_p_value": 0.8897110288971104
           },
           {
             "method_a": "MPNet",
             "method_b": "MiniLM",
             "metric": "ndcg_at_10",
             "mean_difference": 0.010615264347833256,
-            "ci_low": -0.015430986352421077,
-            "ci_high": 0.03706646445961714,
-            "p_value": 0.43005699430056993,
+            "ci_low": -0.015313356792405556,
+            "ci_high": 0.03644717444352707,
+            "p_value": 0.42345765423457654,
             "wins": 56,
             "losses": 50,
             "ties": 194,
-            "holm_adjusted_p_value": 0.86991300869913
+            "holm_adjusted_p_value": 0.8897110288971104
+          },
+          {
+            "method_a": "Hybrid (MPNet)",
+            "method_b": "BM25",
+            "metric": "ndcg_at_10",
+            "mean_difference": 0.01983754847161605,
+            "ci_low": -0.006386345762840116,
+            "ci_high": 0.046155185926284543,
+            "p_value": 0.1386861313868613,
+            "wins": 65,
+            "losses": 41,
+            "ties": 194,
+            "holm_adjusted_p_value": 0.6759324067593241
+          },
+          {
+            "method_a": "Hybrid (MPNet)",
+            "method_b": "MPNet",
+            "metric": "ndcg_at_10",
+            "mean_difference": 0.030441615906130592,
+            "ci_low": 0.0025055848150686067,
+            "ci_high": 0.05854188021920154,
+            "p_value": 0.0341965803419658,
+            "wins": 73,
+            "losses": 37,
+            "ties": 190,
+            "holm_adjusted_p_value": 0.20517948205179481
+          },
+          {
+            "method_a": "Hybrid (MiniLM)",
+            "method_b": "BM25",
+            "metric": "ndcg_at_10",
+            "mean_difference": 0.018671604695610633,
+            "ci_low": -0.005355153547033388,
+            "ci_high": 0.04300447720191914,
+            "p_value": 0.1351864813518648,
+            "wins": 60,
+            "losses": 40,
+            "ties": 200,
+            "holm_adjusted_p_value": 0.6759324067593241
+          },
+          {
+            "method_a": "Hybrid (MiniLM)",
+            "method_b": "MiniLM",
+            "metric": "ndcg_at_10",
+            "mean_difference": 0.03989093647795843,
+            "ci_low": 0.011816074723941203,
+            "ci_high": 0.06614632127957153,
+            "p_value": 0.0046995300469953,
+            "wins": 79,
+            "losses": 34,
+            "ties": 187,
+            "holm_adjusted_p_value": 0.0375962403759624
           }
         ],
         "recall_at_100": [
@@ -434,13 +607,13 @@
             "method_b": "TF-IDF",
             "metric": "recall_at_100",
             "mean_difference": -0.012333333333333333,
-            "ci_low": -0.025333333333333336,
+            "ci_low": -0.025,
             "ci_high": -0.002333333333333333,
-            "p_value": 0.0405959404059594,
+            "p_value": 0.0375962403759624,
             "wins": 0,
             "losses": 5,
             "ties": 295,
-            "holm_adjusted_p_value": 0.0811918808119188
+            "holm_adjusted_p_value": 0.1503849615038496
           },
           {
             "method_a": "MiniLM",
@@ -448,25 +621,25 @@
             "metric": "recall_at_100",
             "mean_difference": 0.04577777777777778,
             "ci_low": 0.008444444444444444,
-            "ci_high": 0.08511111111111111,
-            "p_value": 0.019198080191980802,
+            "ci_high": 0.08466666666666667,
+            "p_value": 0.017698230176982303,
             "wins": 28,
             "losses": 11,
             "ties": 261,
-            "holm_adjusted_p_value": 0.05759424057594241
+            "holm_adjusted_p_value": 0.08849115088491151
           },
           {
             "method_a": "MPNet",
             "method_b": "BM25",
             "metric": "recall_at_100",
             "mean_difference": 0.06244444444444445,
-            "ci_low": 0.021222222222222222,
-            "ci_high": 0.10466666666666666,
-            "p_value": 0.0033996600339966003,
+            "ci_low": 0.020997222222222226,
+            "ci_high": 0.10433333333333333,
+            "p_value": 0.0026997300269973002,
             "wins": 34,
             "losses": 12,
             "ties": 254,
-            "holm_adjusted_p_value": 0.013598640135986401
+            "holm_adjusted_p_value": 0.021597840215978402
           },
           {
             "method_a": "MPNet",
@@ -474,12 +647,64 @@
             "metric": "recall_at_100",
             "mean_difference": 0.016666666666666666,
             "ci_low": -0.013333333333333334,
-            "ci_high": 0.04666666666666667,
-            "p_value": 0.2762723727627237,
+            "ci_high": 0.04833333333333333,
+            "p_value": 0.2765723427657234,
             "wins": 14,
             "losses": 9,
             "ties": 277,
-            "holm_adjusted_p_value": 0.2762723727627237
+            "holm_adjusted_p_value": 0.557044295570443
+          },
+          {
+            "method_a": "Hybrid (MPNet)",
+            "method_b": "BM25",
+            "metric": "recall_at_100",
+            "mean_difference": 0.08077777777777778,
+            "ci_low": 0.049666666666666665,
+            "ci_high": 0.11333611111111107,
+            "p_value": 9.999000099990002e-05,
+            "wins": 29,
+            "losses": 1,
+            "ties": 270,
+            "holm_adjusted_p_value": 0.0015998400159984002
+          },
+          {
+            "method_a": "Hybrid (MPNet)",
+            "method_b": "MPNet",
+            "metric": "recall_at_100",
+            "mean_difference": 0.018333333333333333,
+            "ci_low": -0.008333333333333333,
+            "ci_high": 0.04666666666666667,
+            "p_value": 0.19768023197680232,
+            "wins": 12,
+            "losses": 6,
+            "ties": 282,
+            "holm_adjusted_p_value": 0.557044295570443
+          },
+          {
+            "method_a": "Hybrid (MiniLM)",
+            "method_b": "BM25",
+            "metric": "recall_at_100",
+            "mean_difference": 0.0751111111111111,
+            "ci_low": 0.04677777777777778,
+            "ci_high": 0.10633333333333334,
+            "p_value": 9.999000099990002e-05,
+            "wins": 25,
+            "losses": 0,
+            "ties": 275,
+            "holm_adjusted_p_value": 0.0015998400159984002
+          },
+          {
+            "method_a": "Hybrid (MiniLM)",
+            "method_b": "MiniLM",
+            "metric": "recall_at_100",
+            "mean_difference": 0.029333333333333336,
+            "ci_low": 0.006666666666666667,
+            "ci_high": 0.05333333333333334,
+            "p_value": 0.013798620137986202,
+            "wins": 11,
+            "losses": 3,
+            "ties": 286,
+            "holm_adjusted_p_value": 0.0827917208279172
           }
         ]
       },
@@ -667,6 +892,8 @@
             "query_count": 100,
             "mean_ndcg_at_10": {
               "BM25": 0.672214706815379,
+              "Hybrid (MiniLM)": 0.70855048912953,
+              "Hybrid (MPNet)": 0.682709535126427,
               "MiniLM": 0.6272748521510871,
               "MPNet": 0.6385012494591364,
               "TF-IDF": 0.6450147088033765
@@ -680,6 +907,8 @@
             "query_count": 100,
             "mean_ndcg_at_10": {
               "BM25": 0.6342876071318452,
+              "Hybrid (MiniLM)": 0.6437937502176334,
+              "Hybrid (MPNet)": 0.6530337001593358,
               "MiniLM": 0.6418099622023767,
               "MPNet": 0.638077500146996,
               "TF-IDF": 0.6080686924504769
@@ -693,6 +922,8 @@
             "query_count": 100,
             "mean_ndcg_at_10": {
               "BM25": 0.6924006378365519,
+              "Hybrid (MiniLM)": 0.7025735265234448,
+              "Hybrid (MPNet)": 0.7226723619128612,
               "MiniLM": 0.6661601420832686,
               "MPNet": 0.6905119998740998,
               "TF-IDF": 0.6721889503577222
@@ -708,6 +939,8 @@
             "query_count": 277,
             "mean_ndcg_at_10": {
               "BM25": 0.6761253603675378,
+              "Hybrid (MiniLM)": 0.6882242624002081,
+              "Hybrid (MPNet)": 0.6901533876405429,
               "MiniLM": 0.6508502613401136,
               "MPNet": 0.6617994715024432,
               "TF-IDF": 0.6545337381097033
@@ -718,6 +951,11 @@
           "2-3": 18,
           "4+": 5
         }
+      },
+      "hybrid_mpnet_vs_components": {
+        "beats_both": 24,
+        "loses_to_both": 1,
+        "between_or_tied": 275
       }
     }
   }

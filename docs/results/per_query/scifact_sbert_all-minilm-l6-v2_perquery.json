@@ -2,7 +2,7 @@
   "method": "sbert",
   "dataset": "scifact",
   "model": "sentence-transformers/all-MiniLM-L6-v2",
-  "generated_at": "2026-11-07T13:02:18.959410+00:00",
+  "generated_at": "2026-11-07T18:15:45.300409+00:00",
   "query_count": 300,
   "queries": [
     {
