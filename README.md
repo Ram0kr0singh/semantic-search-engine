@@ -42,6 +42,24 @@ npm run dev
 
 Open the Vite URL (normally `http://127.0.0.1:5173`). Use `npm test` for frontend tests and `npm run build` for a strict TypeScript production build.
 
+## Evaluation snapshot
+
+The Evaluation view reads the committed `docs/results/summary.json` snapshot. Regenerate benchmark reports, then export the validated snapshot:
+
+```powershell
+.venv\Scripts\python.exe -m scripts.evaluate ...
+.venv\Scripts\python.exe -m scripts.export_results --hardware-note "RTX 4060 Laptop GPU, single run per configuration; timings vary run to run" --markdown
+```
+
+| Dataset | Method / model | nDCG@10 | MRR@10 | Recall@1 | Recall@10 | Recall@100 | Index build (s) | Query latency (ms) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fiqa | sentence-transformers/all-MiniLM-L6-v2 | 0.3687 | 0.4451 | 0.1714 | 0.4413 | 0.7061 | 60.03 | 15.48 |
+| fiqa | sentence-transformers/all-mpnet-base-v2 | 0.4996 | 0.5823 | 0.2440 | 0.5811 | 0.8197 | 683.70 | 29.54 |
+| fiqa | TF-IDF | 0.1488 | 0.1858 | 0.0602 | 0.1950 | 0.4671 | 10.96 | 184.35 |
+| scifact | sentence-transformers/all-MiniLM-L6-v2 | 0.6451 | 0.6047 | 0.4823 | 0.7833 | 0.9250 | 7.67 | 6.53 |
+| scifact | sentence-transformers/all-mpnet-base-v2 | 0.6557 | 0.6177 | 0.5146 | 0.7901 | 0.9417 | 69.87 | 14.29 |
+| scifact | TF-IDF | 0.6418 | 0.6047 | 0.4850 | 0.7790 | 0.8916 | 1.86 | 21.93 |
+
 Endpoints:
 
 - `GET /health` reports readiness, document count, methods, device, and API version.

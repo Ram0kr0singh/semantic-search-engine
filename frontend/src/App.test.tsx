@@ -305,6 +305,20 @@ describe('App Component', () => {
     expect(screen.queryByRole('heading', { name: 'TF-IDF' })).not.toBeInTheDocument();
   });
 
+  it('switches to Evaluation and mirrors it in the URL', async () => {
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith('/health')) return jsonResponse(mockHealth);
+      if (url.endsWith('/methods')) return jsonResponse(mockMethods);
+      if (url.endsWith('/evaluation')) return jsonResponse({ runs: [], hardware_note: 'test', generated_at: 'now' });
+      return jsonResponse({});
+    }));
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Evaluation' }));
+    expect(await screen.findByText('No evaluation runs are available.')).toBeInTheDocument();
+    expect(window.location.search).toContain('view=eval');
+  });
+
   it('keeps submitted results visible when k changes and shows an update hint', async () => {
     window.history.replaceState(null, '', '/?q=BERT&mode=search&model=tfidf');
     vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => {

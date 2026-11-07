@@ -2,6 +2,7 @@
 
 from fastapi.testclient import TestClient
 import pytest
+import json
 
 from backend.app.api.main import create_app
 from backend.app.api.state import MethodInfo, SearchRegistry
@@ -96,3 +97,15 @@ def test_snippet_ends_at_word_boundary(client: TestClient) -> None:
 def test_allowed_origin_receives_cors_header(client: TestClient) -> None:
     response = client.get("/health", headers={"Origin": "http://localhost:5173"})
     assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+
+
+def test_evaluation_snapshot_states(client: TestClient, tmp_path, monkeypatch) -> None:
+    snapshot = tmp_path / "summary.json"
+    monkeypatch.setenv("EVALUATION_SNAPSHOT_PATH", str(snapshot))
+    missing = client.get("/evaluation")
+    assert missing.status_code == 404
+    assert missing.json()["error"]["details"]["build_command"] == "python -m scripts.export_results"
+    snapshot.write_text(json.dumps({"runs": [], "hardware_note": "test", "generated_at": "now"}))
+    assert client.get("/evaluation").json()["hardware_note"] == "test"
+    snapshot.write_text("not JSON")
+    assert client.get("/evaluation").json()["error"]["code"] == "evaluation_snapshot_invalid"

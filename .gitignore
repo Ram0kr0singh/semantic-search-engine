@@ -15,6 +15,9 @@ venv/
 # Local datasets and evaluation output
 data/
 results/
+!docs/
+!docs/results/
+!docs/results/*.json
 
 # Keep Python source in the backend data package; only benchmark caches are ignored.
 !backend/app/data/

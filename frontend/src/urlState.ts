@@ -1,4 +1,5 @@
 export type SearchMode = 'compare' | 'search';
+export type AppView = SearchMode | 'eval';
 
 export type ResultCount = 5 | 10 | 20;
 
@@ -7,6 +8,7 @@ export interface UrlState {
   mode: SearchMode;
   model: string;
   k: ResultCount;
+  view?: AppView;
 }
 
 export function parseUrlState(search: string): UrlState {
@@ -16,7 +18,8 @@ export function parseUrlState(search: string): UrlState {
   const rawModel = params.get('model');
   const rawK = Number(params.get('k'));
 
-  const mode: SearchMode = rawMode === 'search' ? 'search' : 'compare';
+  const view: AppView = params.get('view') === 'eval' ? 'eval' : rawMode === 'search' ? 'search' : 'compare';
+  const mode: SearchMode = view === 'search' ? 'search' : 'compare';
   const model = rawModel && rawModel.trim() ? rawModel.trim() : 'sbert-mpnet';
   const k: ResultCount = rawK === 10 || rawK === 20 ? rawK : 5;
 
@@ -25,6 +28,7 @@ export function parseUrlState(search: string): UrlState {
     mode,
     model,
     k,
+    view,
   };
 }
 
@@ -36,6 +40,7 @@ export function serializeUrlState(state: UrlState): string {
   params.set('mode', state.mode);
   params.set('model', state.model);
   params.set('k', String(state.k));
+  if (state.view === 'eval') params.set('view', 'eval');
   return params.toString();
 }
 

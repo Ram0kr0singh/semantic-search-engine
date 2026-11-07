@@ -2,14 +2,22 @@
 
 from __future__ import annotations
 
+import json
+import os
+from pathlib import Path
 from time import perf_counter
 
 from fastapi import APIRouter, HTTPException, Request
 
-from .schemas import SearchItem, SearchRequest, SearchResponse
+from .schemas import EvaluationResponse, SearchItem, SearchRequest, SearchResponse
 from .state import SearchRegistry
 
 router = APIRouter()
+
+
+def evaluation_snapshot_path() -> Path:
+    configured = os.getenv("EVALUATION_SNAPSHOT_PATH")
+    return Path(configured) if configured else Path(__file__).resolve().parents[3] / "docs" / "results" / "summary.json"
 
 
 def get_registry(request: Request) -> SearchRegistry:
@@ -51,6 +59,18 @@ def methods(request: Request) -> list[dict[str, object]]:
         {"id": method.id, "display_name": method.display_name, "model_name": method.model_name, "ready": method.ready}
         for method in registry.methods.values()
     ]
+
+
+@router.get("/evaluation", response_model=EvaluationResponse)
+def evaluation() -> EvaluationResponse:
+    path = evaluation_snapshot_path()
+    if not path.is_file():
+        raise error(404, "evaluation_snapshot_missing", "Evaluation snapshot is not available.", {"build_command": "python -m scripts.export_results"})
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        return EvaluationResponse.model_validate(payload)
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        raise error(500, "evaluation_snapshot_invalid", "Evaluation snapshot is invalid.") from exc
 
 
 @router.post("/search", response_model=SearchResponse)

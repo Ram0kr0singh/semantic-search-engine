@@ -47,6 +47,8 @@ export interface SearchParams {
   method: string;
   k: number;
 }
+export interface EvaluationRun { method: string; dataset: string; model: string | null; generated_at: string; query_count: number; recall_at_1: number; recall_at_5: number; recall_at_10: number; recall_at_100: number; mrr_at_10: number; ndcg_at_10: number; index_build_seconds: number; average_query_latency_ms: number; }
+export interface EvaluationResponse { runs: EvaluationRun[]; hardware_note: string; generated_at: string; }
 
 export class ApiError extends Error {
   readonly status: number;
@@ -183,6 +185,7 @@ async function request<T>(
 export const api = {
   health: () => request<Health>('/health'),
   methods: () => request<Method[]>('/methods'),
+  evaluation: () => request<EvaluationResponse>('/evaluation'),
   document: (id: string) => request<DocumentRecord>(`/documents/${encodeURIComponent(id)}`),
   search: (params: SearchParams, controller?: AbortController) =>
     request<SearchResponse>(

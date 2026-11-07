@@ -14,6 +14,7 @@ describe('URL state management', () => {
       mode: 'compare',
       model: 'sbert-mpnet',
       k: 5,
+      view: 'compare',
     });
   });
 
@@ -24,6 +25,7 @@ describe('URL state management', () => {
       mode: 'search',
       model: 'sbert-minilm',
       k: 20,
+      view: 'search',
     });
   });
 
@@ -36,6 +38,10 @@ describe('URL state management', () => {
   it('falls back to mode=compare when mode is invalid', () => {
     expect(parseUrlState('?mode=invalid').mode).toBe('compare');
     expect(parseUrlState('?mode=other').mode).toBe('compare');
+  });
+
+  it('parses the Evaluation view from the URL', () => {
+    expect(parseUrlState('?view=eval').view).toBe('eval');
   });
 
   it('serializes state to query string correctly', () => {

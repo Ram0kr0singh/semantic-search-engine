@@ -1,10 +1,13 @@
 import type { Health } from '../api';
+import type { AppView } from '../urlState';
 
 interface HeaderProps {
   health: Health | null;
+  view: AppView;
+  onViewChange: (view: AppView) => void;
 }
 
-export function Header({ health }: HeaderProps) {
+export function Header({ health, view, onViewChange }: HeaderProps) {
   const device = health?.embedding_device?.toUpperCase() ?? 'CPU';
   const paperCount = health?.document_count
     ? `${health.document_count.toLocaleString()} papers`
@@ -21,6 +24,9 @@ export function Header({ health }: HeaderProps) {
         </h1>
       </div>
 
+      <nav className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg" aria-label="Application views">
+        {([['compare', 'Compare'], ['search', 'Search'], ['eval', 'Evaluation']] as const).map(([id, label]) => <button key={id} type="button" onClick={() => onViewChange(id)} aria-current={view === id ? 'page' : undefined} className={`px-3 py-1.5 text-xs font-semibold rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${view === id ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'}`}>{label}</button>)}
+      </nav>
       <div
         className="flex items-center gap-2 text-xs text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-full shadow-2xs self-start sm:self-auto"
         aria-live="polite"
