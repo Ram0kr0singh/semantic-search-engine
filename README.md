@@ -1,88 +1,154 @@
 # Semantic Document Search Engine
 
-A university NLP capstone and portfolio project for comparing document retrieval methods. It includes TF-IDF and Sentence-BERT dense retrieval on registered [BEIR](https://github.com/beir-cellar/beir) benchmarks and a FastAPI search API.
+Search academic papers by meaning, with a TF-IDF baseline and Sentence-BERT
+retrieval.
 
-## Setup
+An NLP capstone project on information retrieval, benchmark evaluation, and
+serving search through a web application.
 
-Requires Python 3.11 or 3.12.
+**Ram Kumar Singh (GitHub: Ram0kr0singh), MCA (AI/ML) capstone project,
+K.R. Mangalam University**
 
-```powershell
-.venv\Scripts\python.exe -m pip install -r requirements.txt
+## Hero screenshot
+
+A hero screenshot is not included in this checkout. See [Screenshots](#screenshots)
+for the current image status.
+
+## What this is
+
+This project searches documents by meaning rather than relying only on exact
+keyword overlap. It compares a TF-IDF baseline with Sentence-BERT embeddings
+and cosine similarity over a FAISS index. The API returns ranked papers with
+scores, and the evaluation harness measures retrieval on two public BEIR
+benchmarks. The web application also demonstrates search over a deterministic
+30,000-paper arXiv corpus, with a React interface for comparing methods side by
+side.
+
+## Key results
+
+Values below are rounded from the committed [evaluation summary](docs/results/summary.json).
+
+| Dataset | Method | nDCG@10 | Recall@100 |
+| --- | --- | ---: | ---: |
+| SciFact | TF-IDF | 0.6418 | 0.8916 |
+| SciFact | MiniLM | 0.6451 | 0.9250 |
+| SciFact | MPNet | 0.6557 | 0.9417 |
+| FiQA | TF-IDF | 0.1488 | 0.4671 |
+| FiQA | MiniLM | 0.3687 | 0.7061 |
+| FiQA | MPNet | 0.4996 | 0.8197 |
+
+- On SciFact, technical terms often overlap between queries and papers. The
+  three methods are close on the reported metrics.
+- On FiQA, which has natural-language questions and paraphrased answers, both
+  semantic models score substantially higher than TF-IDF on these metrics.
+- Semantic indexing takes more compute and longer to build; query latency
+  depends on the hardware. The FiQA MPNet index build recorded 683.70 seconds.
+
+The committed results are from one laptop run; timings vary run to run.
+Hardware note from the summary: **RTX 4060 Laptop GPU, single run per
+configuration; timings vary run to run.**
+
+## Screenshots
+
+There are no screenshot files in `docs/images/` in this checkout, so no image
+links are listed here.
+
+## Features
+
+- TF-IDF and Sentence-BERT retrieval, with cosine similarity for normalized
+  dense embeddings and FAISS inner-product search.
+- Evaluation harness reporting Recall@1/5/10/100, MRR@10, nDCG@10, index build
+  time, and average query latency.
+- Registry and loaders for BEIR SciFact and FiQA.
+- Persistent Sentence-BERT indexes that validate the model identity and index
+  metadata when loaded.
+- A sentence-aware, overlapping text chunking utility for long documents; it
+  is not currently wired into the search API.
+- FastAPI endpoints for health, methods, search, documents, and the evaluation
+  snapshot.
+- React UI with Compare, Search, and Evaluation views.
+- Shareable search settings in the URL, document expansion, and offline/error
+  handling.
+- Docker Compose setup with CPU as the default and an optional NVIDIA override.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph OFFLINE["Offline: prepare corpus and indexes"]
+    HF["arXiv metadata on Hugging Face"] --> BC["scripts/build_corpus.py"]
+    BC --> JSONL["30,000-paper JSONL corpus"]
+    JSONL --> EMB["Sentence-BERT encoder: MiniLM or MPNet"]
+    EMB --> FAISS["Saved FAISS index and metadata"]
+  end
+
+  subgraph ONLINE["Online: serve searches"]
+    API["FastAPI: health, methods, search, documents, evaluation"]
+    JSONL --> TFIDF["TF-IDF index built at API startup"]
+    FAISS --> SB["Sentence-BERT retriever with loaded FAISS index"]
+    API --> TFIDF
+    API --> SB
+    UI["React UI: Compare, Search, Evaluation"] -->|"HTTP JSON"| API
+  end
+
+  BEIR["BEIR: SciFact and FiQA"] --> EVAL["scripts/evaluate.py"]
+  EVAL --> REPORTS["results/*.json"]
+  REPORTS --> EXPORT["scripts/export_results.py"]
+  EXPORT --> SNAP["docs/results/summary.json"]
+  SNAP --> API
 ```
 
-Sentence-BERT and CPU FAISS are installed through `requirements.txt`; no additional system installation is needed. Embedding uses the already-configured CUDA-enabled PyTorch installation when a GPU is available and otherwise falls back to CPU. FAISS searches on CPU.
+The offline demo workflow streams the arXiv metadata, builds a local JSONL
+corpus, encodes documents, and saves the Sentence-BERT FAISS indexes. At API
+startup, TF-IDF is built and available saved dense indexes are loaded. Each
+dense search embeds its query, searches the loaded index, and returns ranked
+papers and snippets.
 
-## Run with Docker
+## Quick start (local, with GPU if available)
 
-Prerequisites: Docker Desktop on Windows 11 with the WSL 2 backend enabled. Docker is the only runtime dependency for this route; the prepared corpus and indexes remain on the host and are not copied into either image.
+Use Python 3.11 or 3.12; the author's environment uses Python 3.12.16. Node.js
+and npm are required for the frontend.
 
-### One-time data preparation
-
-Run these commands on the host from the repository root before starting Compose. They create the gitignored `data/arxiv_cs_30000.jsonl` corpus and the two saved indexes that the API reads. The Docker containers intentionally do not build them.
-
-```powershell
-.venv\Scripts\python.exe -m scripts.build_corpus
-.venv\Scripts\python.exe -m scripts.search_demo --query "how can neural networks understand human language?" --rebuild
-.venv\Scripts\python.exe -m scripts.search_demo --model sentence-transformers/all-mpnet-base-v2 --index-dir data/index_mpnet --query "how can neural networks understand human language?" --rebuild
-```
-
-Start both services:
+Create and activate a virtual environment from the repository root:
 
 ```powershell
-docker compose up --build
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 ```
 
-Open the UI at [http://localhost:8080](http://localhost:8080) and the API documentation at [http://localhost:8000/docs](http://localhost:8000/docs). The browser calls `VITE_API_BASE_URL` directly (default `http://127.0.0.1:8000`), so that value must be reachable from the browser, not merely from another container.
-
-The API gets `/app/data` from `./data` as a read-only mount, including `arxiv_cs_30000.jsonl`, `arxiv_sbert_index`, and `index_mpnet`. `./data/huggingface-home` is mounted read-write at `HF_HOME=/hf`, so downloaded Hugging Face model weights persist on the host without being baked into the API image. The committed `docs/results` snapshot is mounted read-only at `/app/docs/results` for `/evaluation`.
-
-CPU startup can take several minutes: Compose gives the API a three-minute healthcheck grace period, then allows another two minutes of 10-second checks. First startup may also download model weights into the cache. If the corpus or an index is missing, the API retains its existing behavior: it starts with the affected method unavailable and logs the host command to build it.
-
-Stop services with `docker compose down`. The model cache stays in `./data/huggingface-home`; remove that host folder separately only when a fresh model download is wanted.
-
-### CPU by default, GPU optional
-
-Docker uses CPU by default because a CPU image works on any machine; anyone who clones the repo can start it without NVIDIA drivers. Docker is the portable setup. Local development and demos use the CUDA setup: a Python virtual environment with a CUDA build of PyTorch, the API run with `uvicorn`, and the UI with `npm run dev`. The UI header shows the active device (CUDA locally, CPU in the default Docker setup).
-
-The setups are independent: the container has its own CPU-only PyTorch and does not change the local virtual environment. Both use port 8000 for the API, so stop one before starting the other.
-
-To use the optional GPU override:
+Install PyTorch separately: choose the Windows, pip, and Python options at
+[pytorch.org](https://pytorch.org/get-started/locally/) and select either the
+CPU or CUDA build that matches the machine. Then install the project
+requirements:
 
 ```powershell
-docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+python -m pip install -r requirements.txt
 ```
 
-This requires NVIDIA drivers and Docker Desktop GPU support. The override uses CUDA PyTorch wheels and requires rebuilding the image; the configuration has been validated with `docker compose config` but not tested on GPU hardware. CPU mode is slower, especially for the MPNet model.
+The requirements file does not pin a PyTorch build. Install PyTorch separately
+first to choose CPU or CUDA; the requirements also install Sentence-Transformers,
+which uses PyTorch. The retriever uses CUDA when the installed PyTorch build
+can access it and falls back to CPU otherwise. FAISS is installed as
+`faiss-cpu`.
 
-| Problem | Check |
-| --- | --- |
-| Port already in use | Set `API_PORT` or `WEB_PORT` in an uncommitted `.env`, then restart Compose. |
-| First start is slow | Watch `docker compose logs -f api`; model weights download once into `data/huggingface-home`. |
-| Browser console shows CORS failure | Ensure `VITE_API_BASE_URL` and `API_CORS_ORIGINS` match the published UI origin, then rebuild `web`. |
-| Missing data or methods unavailable | Run the host preparation commands above; confirm `data/` contains the corpus and both index folders. |
-| Windows mount or line-ending issue | Run from the repository root in a WSL 2-backed Docker Desktop checkout; use LF line endings for Dockerfiles and Compose YAML. |
-
-## Run the API
-
-Build the arXiv corpus and at least one saved SBERT index as described below, then start the server from the repository root. Do not use `--reload`: it creates another process and reloads the models.
+Build the demo corpus and both saved Sentence-BERT indexes:
 
 ```powershell
-.venv\Scripts\python.exe -m uvicorn backend.app.api.main:app --port 8000
+python -m scripts.build_corpus
+python -m scripts.search_demo --query "how can neural networks understand human language?" --rebuild
+python -m scripts.search_demo --model sentence-transformers/all-mpnet-base-v2 --index-dir data/index_mpnet --query "how can neural networks understand human language?" --rebuild
 ```
 
-Swagger UI is available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs). The API loads the corpus and builds TF-IDF once at startup, then loads only SBERT indexes already present on disk. A missing SBERT index leaves its method unavailable; the server log prints the command to create it.
-
-## Frontend
-
-The React/Vite frontend provides single-method search and side-by-side TF-IDF/Sentence-BERT comparison. It reads `VITE_API_BASE_URL` (default: `http://127.0.0.1:8000`); copy `frontend/.env.example` to `frontend/.env` only when a different API URL is needed.
-
-Run the API from the repository root in one terminal:
+Start the API from the repository root:
 
 ```powershell
-.venv\Scripts\python.exe -m uvicorn backend.app.api.main:app --port 8000
+python -m uvicorn backend.app.api.main:app --port 8000
 ```
 
-Then run the UI in another:
+Do not add `--reload`: reloading starts another process and reloads the models.
+Startup can take tens of seconds while the corpus, indexes, and models load.
+Keep the API running, then open a second terminal and start the frontend:
 
 ```powershell
 cd frontend
@@ -90,114 +156,171 @@ npm install
 npm run dev
 ```
 
-Open the Vite URL (normally `http://127.0.0.1:5173`). Use `npm test` for frontend tests and `npm run build` for a strict TypeScript production build.
+Open the local URL printed by Vite. The API is available at
+`http://127.0.0.1:8000`.
 
-## Evaluation snapshot
+## Run with Docker
 
-The Evaluation view reads the committed `docs/results/summary.json` snapshot. Regenerate benchmark reports, then export the validated snapshot:
+Docker is the portable setup and uses CPU-only PyTorch by default, so the
+default image can run without NVIDIA drivers. Local development uses a
+separately installed PyTorch CPU or CUDA build; Docker has its own environment
+and does not change the local virtual environment. Stop either setup before
+starting the other because both use API port `8000`.
 
-```powershell
-.venv\Scripts\python.exe -m scripts.evaluate ...
-.venv\Scripts\python.exe -m scripts.export_results --hardware-note "RTX 4060 Laptop GPU, single run per configuration; timings vary run to run" --markdown
-```
-
-| Dataset | Method / model | nDCG@10 | MRR@10 | Recall@1 | Recall@10 | Recall@100 | Index build (s) | Query latency (ms) |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| fiqa | sentence-transformers/all-MiniLM-L6-v2 | 0.3687 | 0.4451 | 0.1714 | 0.4413 | 0.7061 | 60.03 | 15.48 |
-| fiqa | sentence-transformers/all-mpnet-base-v2 | 0.4996 | 0.5823 | 0.2440 | 0.5811 | 0.8197 | 683.70 | 29.54 |
-| fiqa | TF-IDF | 0.1488 | 0.1858 | 0.0602 | 0.1950 | 0.4671 | 10.96 | 184.35 |
-| scifact | sentence-transformers/all-MiniLM-L6-v2 | 0.6451 | 0.6047 | 0.4823 | 0.7833 | 0.9250 | 7.67 | 6.53 |
-| scifact | sentence-transformers/all-mpnet-base-v2 | 0.6557 | 0.6177 | 0.5146 | 0.7901 | 0.9417 | 69.87 | 14.29 |
-| scifact | TF-IDF | 0.6418 | 0.6047 | 0.4850 | 0.7790 | 0.8916 | 1.86 | 21.93 |
-
-Endpoints:
-
-- `GET /health` reports readiness, document count, methods, device, and API version.
-- `GET /methods` lists stable method IDs: `tfidf`, `sbert-minilm`, and `sbert-mpnet`.
-- `POST /search` accepts `query`, optional `method`, and optional `k` (1–50; default 10). It defaults to MPNet when available.
-- `GET /documents/{id}` returns a complete corpus record.
+Prepare the corpus and indexes on the host from the repository root before
+starting Docker. The containers mount `./data` from the host and do not build
+the corpus or indexes:
 
 ```powershell
-curl http://127.0.0.1:8000/health
-curl -X POST http://127.0.0.1:8000/search -H "Content-Type: application/json" -d '{"query":"making models smaller without losing accuracy","method":"sbert-mpnet","k":5}'
-curl http://127.0.0.1:8000/documents/0704.2083
+python -m scripts.build_corpus
+python -m scripts.search_demo --query "how can neural networks understand human language?" --rebuild
+python -m scripts.search_demo --model sentence-transformers/all-mpnet-base-v2 --index-dir data/index_mpnet --query "how can neural networks understand human language?" --rebuild
 ```
 
-Configuration is supplied through environment variables; paths below are relative to the working directory by default.
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `ARXIV_CORPUS_PATH` | `data/arxiv_cs_30000.jsonl` | JSONL corpus path |
-| `ARXIV_MINILM_INDEX_DIR` | `data/arxiv_sbert_index` | MiniLM saved-index directory |
-| `ARXIV_MPNET_INDEX_DIR` | `data/index_mpnet` | MPNet saved-index directory |
-| `ARXIV_MINILM_MODEL` | `sentence-transformers/all-MiniLM-L6-v2` | MiniLM model name |
-| `ARXIV_MPNET_MODEL` | `sentence-transformers/all-mpnet-base-v2` | MPNet model name |
-| `API_CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated allowed browser origins |
-
-## arXiv terminal demo
-
-Build the demo corpus once (the loader streams rather than downloading the 341 MB source metadata file locally):
+Start the UI and API:
 
 ```powershell
-.venv\Scripts\python.exe -m scripts.build_corpus
+docker compose up --build
 ```
 
-This uses [`yacud1/arxiv-bge-base-818k`](https://huggingface.co/datasets/yacud1/arxiv-bge-base-818k), a public no-auth Hugging Face dataset. Its card lists the arXiv metadata and abstracts as **CC0-1.0** and exposes the `id`, `title`, `abstract`, `categories`, and `update_date` fields used by the builder. The command filters cross-listed or primary papers in `cs.CL`, `cs.AI`, `cs.LG`, `cs.IR`, and `cs.CV`, removes blank abstracts, deduplicates arXiv IDs, cleans whitespace, and deterministically reservoir-samples 30,000 records (use `--size` and `--seed` to change this). It writes `data/arxiv_cs_30000.jsonl`; `data/` is intentionally gitignored.
+By default, the UI is published on port `8080` and the API on port `8000`. The
+corpus and indexes are mounted read-only from `./data`. The Hugging Face cache
+is persisted under `./data/huggingface-home`, and the committed evaluation
+snapshot is mounted read-only.
 
-Run a single semantic query. The first run creates and saves the FAISS index; later runs load it without re-embedding:
+For optional GPU support, use the override:
 
 ```powershell
-.venv\Scripts\python.exe -m scripts.search_demo --query "how can neural networks understand human language?"
-.venv\Scripts\python.exe -m scripts.search_demo --method tfidf --query "image recognition with transformers"
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
 ```
 
-Run without `--query` for an interactive prompt. Use `--rebuild` to recreate the saved SBERT index, `--model` to select another Sentence-BERT model, and `--index-dir` or `--corpus` to change local paths. The index includes its model name, document IDs, document texts, and count; loading with a different `--model` fails clearly instead of returning incompatible embeddings.
+This requires NVIDIA drivers and Docker Desktop GPU support. The override
+selects CUDA PyTorch wheels and requires rebuilding the image. It has been
+validated with `docker compose config`, but has not been tested on GPU
+hardware. CPU mode is slower, especially for MPNet.
 
-Observed build time, index size, corpus size, and cold/warm timings will be recorded here after running the commands in the target environment.
-
-## Run evaluation
-
-From the repository root:
+Stop Docker services with:
 
 ```powershell
-.venv\Scripts\python.exe -m scripts.evaluate --dataset scifact --method tfidf
+docker compose down
 ```
 
-Run Sentence-BERT with the default `all-MiniLM-L6-v2` model:
+## API
+
+Interactive API documentation is available at
+[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) while the API is
+running.
+
+| Method and path | Purpose |
+| --- | --- |
+| `GET /health` | Reports API status, corpus size, methods, and embedding device. |
+| `GET /methods` | Lists registered retrieval methods and their readiness. |
+| `POST /search` | Searches with an optional method and result count. |
+| `GET /documents/{id}` | Returns a full record from the arXiv demo corpus. |
+| `GET /evaluation` | Returns the committed evaluation summary. |
+
+`POST /search` accepts `query`, optional `method`, and optional `k`. The
+default `k` is 10 and valid values are 1 through 50. For example:
 
 ```powershell
-.venv\Scripts\python.exe -m scripts.evaluate --dataset fiqa --method sbert
+curl.exe -X POST http://127.0.0.1:8000/search `
+  -H "Content-Type: application/json" `
+  --data-raw '{"query":"making models smaller without losing accuracy","method":"sbert-mpnet","k":5}'
 ```
 
-Compare all registered retrievers in one table, or use another Sentence-BERT model:
+## Reproducing the evaluation
+
+The evaluation script loads the test splits for SciFact and FiQA. The first
+run downloads dataset files and selected Sentence-Transformer model weights.
+Run all registered methods on both datasets, then evaluate MPNet explicitly:
 
 ```powershell
-.venv\Scripts\python.exe -m scripts.evaluate --dataset scifact --method all
-.venv\Scripts\python.exe -m scripts.evaluate --dataset fiqa --method sbert --model sentence-transformers/all-mpnet-base-v2
-.venv\Scripts\python.exe -m scripts.evaluate --dataset all --method all
+python -m scripts.evaluate --dataset all --method all
+python -m scripts.evaluate --dataset fiqa --method sbert --model sentence-transformers/all-mpnet-base-v2
+python -m scripts.evaluate --dataset scifact --method sbert --model sentence-transformers/all-mpnet-base-v2
 ```
 
-`--dataset` defaults to `scifact`; the current registry contains `scifact` and `fiqa`. `--dataset all` evaluates the selected method(s) against each registered dataset. The first run downloads the selected BEIR collection into the gitignored `data/` directory. It prints Recall@1/5/10/100, MRR@10, nDCG@10, index build time, and mean query latency, then writes JSON to gitignored `results/`. SBERT filenames include the model slug, such as `results/fiqa_sbert_all-mpnet-base-v2.json`, so model runs do not overwrite each other.
-
-To add another BEIR-format dataset published on Hugging Face, add one `DatasetDefinition` entry to `DATASET_REGISTRY` in `backend/app/data/beir.py`, naming its corpus/query repository and qrels repository. No new loader code is needed when it follows the same BEIR `corpus`, `queries`, and test-qrels layout.
-
-## Results
-
-Measured with the commands above on the configured RTX 4060 environment. Index build time excludes Sentence-BERT model load/download time.
-
-| Dataset | Method | Model | nDCG@10 | Index build seconds |
-| --- | --- | --- | --- | --- |
-| SciFact | TF-IDF | — | 0.6418 | 1.6801 |
-| SciFact | SBERT | all-MiniLM-L6-v2 | 0.6451 | 8.5948 |
-| SciFact | SBERT | all-mpnet-base-v2 | 0.6557 | 69.8689 |
-| FiQA | TF-IDF | — | 0.1488 | 11.2276 |
-| FiQA | SBERT | all-MiniLM-L6-v2 | 0.3687 | 63.8386 |
-| FiQA | SBERT | all-mpnet-base-v2 | 0.4996 | 468.8733 |
-
-## Test
+Reports are written to `results/`. Export validated reports to update the
+Evaluation view snapshot:
 
 ```powershell
-.venv\Scripts\python.exe -m pytest
+python -m scripts.export_results --hardware-note "RTX 4060 Laptop GPU, single run per configuration; timings vary run to run" --markdown
 ```
 
-To add another retriever, implement `Retriever` in `backend/app/retrieval/` and register it in `scripts/evaluate.py`.
+In the committed snapshot, indexing FiQA with MPNet took 683.70 seconds on the
+noted laptop GPU. Model loading is measured separately from index build time by
+the evaluation harness.
+
+## Testing
+
+Run the backend tests from the repository root. Specifying `tests` avoids
+pytest traversing the local Hugging Face model cache under `data/`.
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests
+```
+
+The verified result is 38 passing backend tests. Run frontend checks from
+`frontend/`:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+The verified frontend test result is 41 passing tests. The production build
+and lint checks also pass.
+
+## Project structure
+
+```text
+backend/app/
+  api/                 FastAPI application, routes, schemas, and runtime state
+  data/                arXiv and BEIR loaders, dataset registry, and chunker
+  evaluation/          Retrieval metrics and evaluation runner
+  retrieval/           Retriever interface, TF-IDF, and Sentence-BERT
+scripts/               Corpus, demo, benchmark, and snapshot commands
+frontend/src/          React application, views, and API client
+docs/results/          Committed benchmark reports and UI summary
+tests/                 Backend tests
+docker-compose*.yml    Default and optional GPU Compose configurations
+```
+
+## Design decisions and limitations
+
+- TF-IDF and Sentence-BERT produce scores on different scales; compare their
+  rankings and benchmark metrics, not raw search scores against each other.
+- The demo corpus is a deterministic sample of 30,000 papers from the public
+  `yacud1/arxiv-bge-base-818k` arXiv metadata dataset. The existing repository
+  documentation records its license as CC0-1.0.
+- General-purpose embedding models can return topical matches rather than
+  intended meaning, particularly for out-of-domain queries.
+- Retrieval has no reranker or hybrid fusion stage.
+- Docker defaults to CPU; local CUDA use requires a compatible PyTorch build
+  and GPU environment.
+- Timing values are from a single laptop run and will vary with hardware and
+  conditions.
+- PostgreSQL is not used: the demo corpus is small, read-only for search, and
+  loaded into memory by the API.
+- The text chunker is a standalone utility; the current API searches papers
+  from the prepared corpus rather than uploaded documents or passages.
+
+## Future work
+
+- Add hybrid BM25 and dense retrieval with rank fusion.
+- Evaluate a cross-encoder reranker.
+- Add passage-level search over uploaded documents using the existing chunker.
+- Add benchmark datasets such as NFCorpus.
+- Add search history backed by a database if persistence becomes necessary.
+
+## Acknowledgements and data
+
+This project uses the BEIR benchmark collections, Sentence-Transformers,
+FAISS, and Hugging Face datasets and model hosting. The arXiv demo corpus is
+built from [`yacud1/arxiv-bge-base-818k`](https://huggingface.co/datasets/yacud1/arxiv-bge-base-818k);
+the repository documents the dataset card license as CC0-1.0.
+
+## License
+
+License: not yet specified
