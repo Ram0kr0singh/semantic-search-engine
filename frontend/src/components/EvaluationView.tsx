@@ -6,14 +6,19 @@ const columns: Array<[keyof EvaluationRun, string, (value: number) => string, Me
   ['ndcg_at_10', 'nDCG@10', v => v.toFixed(4), 'higher'], ['mrr_at_10', 'MRR@10', v => v.toFixed(4), 'higher'], ['recall_at_1', 'Recall@1', v => v.toFixed(4), 'higher'], ['recall_at_10', 'Recall@10', v => v.toFixed(4), 'higher'], ['recall_at_100', 'Recall@100', v => v.toFixed(4), 'higher'], ['index_build_seconds', 'Index build', v => `${v.toFixed(2)} s`, 'lower'], ['average_query_latency_ms', 'Query latency', v => `${v.toFixed(2)} ms`, 'lower'],
 ];
 const datasetNames: Record<string, string> = { scifact: 'SciFact', fiqa: 'FiQA' };
-function label(run: EvaluationRun) { return run.method === 'tfidf' ? 'TF-IDF' : run.model ?? run.method; }
+function label(run: EvaluationRun) {
+  if (run.method === 'tfidf') return 'TF-IDF';
+  if (run.method === 'bm25') return 'BM25';
+  return run.model ?? run.method;
+}
 function methodOrder(run: EvaluationRun): number {
   if (run.method === 'tfidf') return 0;
-  if (run.method !== 'sbert') return 3;
+  if (run.method === 'bm25') return 1;
+  if (run.method !== 'sbert') return 4;
   const model = run.model?.toLowerCase() ?? '';
-  if (model.includes('minilm')) return 1;
-  if (model.includes('mpnet')) return 2;
-  return 3;
+  if (model.includes('minilm')) return 2;
+  if (model.includes('mpnet')) return 3;
+  return 4;
 }
 function Chart({ runs }: { runs: EvaluationRun[] }) { return <div className="space-y-3" role="img" aria-label={`nDCG at 10 and Recall at 100 comparison for ${runs[0]?.dataset ?? 'dataset'}`}>{runs.map(run => <div key={label(run)} className="text-xs"><span className="font-medium">{label(run)}</span>{(['ndcg_at_10', 'recall_at_100'] as const).map(key => <div key={key} className="flex items-center gap-2 mt-1"><span className="w-20 text-slate-500">{key === 'ndcg_at_10' ? 'nDCG@10' : 'Recall@100'}</span><div className="h-4 bg-blue-600 rounded text-white text-[10px] leading-4 pl-1" style={{ width: `${Math.max(3, run[key] * 100)}%` }}>{run[key].toFixed(3)}</div></div>)}</div>)}</div>; }
 export function EvaluationView() {

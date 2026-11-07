@@ -66,7 +66,7 @@ def export_results(results_dir: Path, output_dir: Path, hardware_note: str) -> t
 def markdown(summary: dict[str, Any]) -> str:
     lines = ["| Dataset | Method / model | nDCG@10 | MRR@10 | Recall@1 | Recall@10 | Recall@100 | Index build (s) | Query latency (ms) |", "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"]
     for run in summary["runs"]:
-        label = "TF-IDF" if run["method"] == "tfidf" else str(run.get("model", run["method"]))
+        label = {"tfidf": "TF-IDF", "bm25": "BM25"}.get(run["method"], run.get("model") or run["method"])
         lines.append(f"| {run['dataset']} | {label} | {run['ndcg_at_10']:.4f} | {run['mrr_at_10']:.4f} | {run['recall_at_1']:.4f} | {run['recall_at_10']:.4f} | {run['recall_at_100']:.4f} | {run['index_build_seconds']:.2f} | {run['average_query_latency_ms']:.2f} |")
     return "\n".join(lines)
 

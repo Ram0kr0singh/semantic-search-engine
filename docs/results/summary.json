@@ -1,7 +1,22 @@
 {
-  "generated_at": "2026-11-06T07:51:22.739677+00:00",
+  "generated_at": "2026-11-07T11:33:01.362004+00:00",
   "hardware_note": "RTX 4060 Laptop GPU, single run per configuration; timings vary run to run",
   "runs": [
+    {
+      "average_query_latency_ms": 7.6296541665215045,
+      "dataset": "fiqa",
+      "generated_at": "2026-11-07T11:23:20.129357+00:00",
+      "index_build_seconds": 3.9590743000007933,
+      "method": "bm25",
+      "model": null,
+      "mrr_at_10": 0.27620517342739564,
+      "ndcg_at_10": 0.22230565495062582,
+      "query_count": 648,
+      "recall_at_1": 0.0997837895986044,
+      "recall_at_10": 0.2817491279296835,
+      "recall_at_100": 0.5131859181627699,
+      "recall_at_5": 0.21629431525264858
+    },
     {
       "average_query_latency_ms": 15.476390586380507,
       "dataset": "fiqa",
@@ -48,10 +63,25 @@
       "recall_at_5": 0.14343102028287213
     },
     {
-      "average_query_latency_ms": 6.527184667550804,
+      "average_query_latency_ms": 0.8387203336557528,
       "dataset": "scifact",
-      "generated_at": "2026-11-06T07:51:22.739677+00:00",
-      "index_build_seconds": 7.665820900001563,
+      "generated_at": "2026-11-07T11:21:57.578786+00:00",
+      "index_build_seconds": 0.4861935000080848,
+      "method": "bm25",
+      "model": null,
+      "mrr_at_10": 0.6352103174603174,
+      "ndcg_at_10": 0.6663009839279254,
+      "query_count": 300,
+      "recall_at_1": 0.5375,
+      "recall_at_10": 0.7781111111111111,
+      "recall_at_100": 0.8792222222222221,
+      "recall_at_5": 0.7159444444444444
+    },
+    {
+      "average_query_latency_ms": 5.477639333160672,
+      "dataset": "scifact",
+      "generated_at": "2026-11-07T11:21:57.579857+00:00",
+      "index_build_seconds": 6.688662000000477,
       "method": "sbert",
       "model": "sentence-transformers/all-MiniLM-L6-v2",
       "mrr_at_10": 0.6047248677248678,
@@ -63,10 +93,10 @@
       "recall_at_5": 0.7379444444444444
     },
     {
-      "average_query_latency_ms": 14.28872433306727,
+      "average_query_latency_ms": 9.904582333595803,
       "dataset": "scifact",
-      "generated_at": "2026-11-06T06:36:09.328634+00:00",
-      "index_build_seconds": 69.86886700001196,
+      "generated_at": "2026-11-07T11:33:01.362004+00:00",
+      "index_build_seconds": 62.03993339999579,
       "method": "sbert",
       "model": "sentence-transformers/all-mpnet-base-v2",
       "mrr_at_10": 0.6177367724867725,
@@ -78,10 +108,10 @@
       "recall_at_5": 0.7121111111111111
     },
     {
-      "average_query_latency_ms": 21.934154333818395,
+      "average_query_latency_ms": 20.521924667118583,
       "dataset": "scifact",
-      "generated_at": "2026-11-06T07:51:22.725885+00:00",
-      "index_build_seconds": 1.8557921000174247,
+      "generated_at": "2026-11-07T11:21:57.577789+00:00",
+      "index_build_seconds": 1.7389750000002095,
       "method": "tfidf",
       "model": null,
       "mrr_at_10": 0.6046547619047619,

@@ -11,13 +11,14 @@ import re
 from backend.app.data.beir import BeirDataset, dataset_names, load_dataset
 from backend.app.evaluation.runner import EvaluationReport, evaluate
 from backend.app.retrieval.base import Retriever
+from backend.app.retrieval.bm25 import BM25Retriever
 from backend.app.retrieval.sbert import SentenceBertRetriever
 from backend.app.retrieval.tfidf import TfidfRetriever
 
 
 def build_retriever(method: str, model_name: str) -> Retriever:
     """Construct a registered retriever implementation by method name."""
-    registry: dict[str, type[Retriever]] = {"tfidf": TfidfRetriever}
+    registry: dict[str, type[Retriever]] = {"tfidf": TfidfRetriever, "bm25": BM25Retriever}
     if method == "sbert":
         return SentenceBertRetriever(model_name=model_name)
     try:
@@ -99,7 +100,7 @@ def main() -> None:
     parser.add_argument(
         "--method",
         default="tfidf",
-        choices=("tfidf", "sbert", "all"),
+        choices=("tfidf", "bm25", "sbert", "all"),
         help="Retriever to evaluate, or all registered retrievers.",
     )
     parser.add_argument(
@@ -118,7 +119,7 @@ def main() -> None:
     args = parser.parse_args()
 
     args.results_dir.mkdir(parents=True, exist_ok=True)
-    methods = ("tfidf", "sbert") if args.method == "all" else (args.method,)
+    methods = ("tfidf", "bm25", "sbert") if args.method == "all" else (args.method,)
     names = dataset_names() if args.dataset == "all" else (args.dataset,)
     for name in names:
         dataset = load_dataset(name, args.data_dir)

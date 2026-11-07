@@ -33,18 +33,21 @@ Values below are rounded from the committed [evaluation summary](docs/results/su
 | Dataset | Method | nDCG@10 | Recall@100 |
 | --- | --- | ---: | ---: |
 | SciFact | TF-IDF | 0.6418 | 0.8916 |
+| SciFact | BM25 | 0.6663 | 0.8792 |
 | SciFact | MiniLM | 0.6451 | 0.9250 |
 | SciFact | MPNet | 0.6557 | 0.9417 |
 | FiQA | TF-IDF | 0.1488 | 0.4671 |
+| FiQA | BM25 | 0.2223 | 0.5132 |
 | FiQA | MiniLM | 0.3687 | 0.7061 |
 | FiQA | MPNet | 0.4996 | 0.8197 |
 
-- On SciFact, technical terms often overlap between queries and papers. The
-  three methods are close on the reported metrics.
-- On FiQA, which has natural-language questions and paraphrased answers, both
-  semantic models score substantially higher than TF-IDF on these metrics.
-- Semantic indexing takes more compute and longer to build; query latency
-  depends on the hardware. The FiQA MPNet index build recorded 683.70 seconds.
+- On SciFact, BM25 has the best nDCG@10, MRR@10, and Recall@1, while MPNet has
+  the best Recall@100. Keyword ranking is strongest near the top here, while
+  semantic search finds more relevant papers deeper in the list.
+- On FiQA, both dense models are far ahead of BM25 and TF-IDF on nDCG@10 and
+  Recall@100.
+- BM25 is the fastest method per query and cheapest to index in these runs.
+  Sentence-BERT indexing takes longer, especially MPNet on FiQA.
 
 The committed results are from one laptop run; timings vary run to run.
 Hardware note from the summary: **RTX 4060 Laptop GPU, single run per
@@ -57,8 +60,8 @@ links are listed here.
 
 ## Features
 
-- TF-IDF and Sentence-BERT retrieval, with cosine similarity for normalized
-  dense embeddings and FAISS inner-product search.
+- TF-IDF and BM25 keyword retrieval, plus Sentence-BERT retrieval with cosine
+  similarity for normalized dense embeddings and FAISS inner-product search.
 - Evaluation harness reporting Recall@1/5/10/100, MRR@10, nDCG@10, index build
   time, and average query latency.
 - Registry and loaders for BEIR SciFact and FiQA.
@@ -238,6 +241,8 @@ Run all registered methods on both datasets, then evaluate MPNet explicitly:
 
 ```powershell
 python -m scripts.evaluate --dataset all --method all
+python -m scripts.evaluate --dataset scifact --method bm25
+python -m scripts.evaluate --dataset fiqa --method bm25
 python -m scripts.evaluate --dataset fiqa --method sbert --model sentence-transformers/all-mpnet-base-v2
 python -m scripts.evaluate --dataset scifact --method sbert --model sentence-transformers/all-mpnet-base-v2
 ```
@@ -310,7 +315,9 @@ docker-compose*.yml    Default and optional GPU Compose configurations
 
 ## Future work
 
-- Add hybrid BM25 and dense retrieval with rank fusion.
+- Add hybrid BM25 and dense retrieval with rank fusion, motivated by the
+  complementary SciFact result: BM25 leads at the top while MPNet has higher
+  Recall@100.
 - Evaluate a cross-encoder reranker.
 - Add passage-level search over uploaded documents using the existing chunker.
 - Add benchmark datasets such as NFCorpus.

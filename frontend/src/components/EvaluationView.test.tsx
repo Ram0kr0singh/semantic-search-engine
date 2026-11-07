@@ -29,6 +29,9 @@ describe('EvaluationView', () => {
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(JSON.stringify({ runs: [
       run({ method: 'sbert', model: 'MPNet', ndcg_at_10: .9, index_build_seconds: 40, average_query_latency_ms: 30 }),
       run({ method: 'sbert', model: 'MiniLM', ndcg_at_10: .8, index_build_seconds: 20, average_query_latency_ms: 15.48 }),
+      run({ method: 'zeta', model: null, index_build_seconds: 30, average_query_latency_ms: 40 }),
+      run({ method: 'bm25', model: null, index_build_seconds: 15, average_query_latency_ms: 18 }),
+      run({ method: 'alpha', model: null, index_build_seconds: 30, average_query_latency_ms: 40 }),
       run({ method: 'tfidf', model: null, ndcg_at_10: .4, index_build_seconds: 10.96, average_query_latency_ms: 25 }),
       run({ dataset: 'fiqa' }),
       run({ dataset: 'custom-dataset' }),
@@ -44,8 +47,15 @@ describe('EvaluationView', () => {
     const scifactSection = screen.getByRole('heading', { name: 'SciFact' }).closest('section');
     if (!scifactSection) throw new Error('SciFact section was not rendered.');
     const rows = within(scifactSection).getAllByRole('row').slice(1);
-    expect(rows.map((row) => row.querySelector('th')?.textContent)).toEqual(['TF-IDF', 'MiniLM', 'MPNet']);
-    const [tfidfRow, miniLmRow, mpnetRow] = rows;
+    expect(rows.map((row) => row.querySelector('th')?.textContent)).toEqual([
+      'TF-IDF',
+      'BM25',
+      'MiniLM',
+      'MPNet',
+      'alpha',
+      'zeta',
+    ]);
+    const [tfidfRow, , miniLmRow, mpnetRow] = rows;
     expect(tfidfRow?.querySelectorAll('td')[5]?.querySelector('[aria-label="Best value"]')).not.toBeNull();
     expect(miniLmRow?.querySelectorAll('td')[6]?.querySelector('[aria-label="Best value"]')).not.toBeNull();
     expect(mpnetRow?.querySelectorAll('td')[0]?.querySelector('[aria-label="Best value"]')).not.toBeNull();
