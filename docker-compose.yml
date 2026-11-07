@@ -1,0 +1,39 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        TORCH_INDEX_URL: ${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cpu}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      ARXIV_CORPUS_PATH: /app/data/arxiv_cs_30000.jsonl
+      ARXIV_MINILM_INDEX_DIR: /app/data/arxiv_sbert_index
+      ARXIV_MPNET_INDEX_DIR: /app/data/index_mpnet
+      ARXIV_MINILM_MODEL: ${ARXIV_MINILM_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
+      ARXIV_MPNET_MODEL: ${ARXIV_MPNET_MODEL:-sentence-transformers/all-mpnet-base-v2}
+      EVALUATION_SNAPSHOT_PATH: /app/docs/results/summary.json
+      API_CORS_ORIGINS: ${API_CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
+      HF_HOME: /hf
+    volumes:
+      - ./data:/app/data:ro
+      - ./data/huggingface-home:/hf
+      - ./docs/results:/app/docs/results:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 180s
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://127.0.0.1:8000}
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy

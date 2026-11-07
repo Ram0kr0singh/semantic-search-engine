@@ -12,6 +12,52 @@ Requires Python 3.11 or 3.12.
 
 Sentence-BERT and CPU FAISS are installed through `requirements.txt`; no additional system installation is needed. Embedding uses the already-configured CUDA-enabled PyTorch installation when a GPU is available and otherwise falls back to CPU. FAISS searches on CPU.
 
+## Run with Docker
+
+Prerequisites: Docker Desktop on Windows 11 with the WSL 2 backend enabled. Docker is the only runtime dependency for this route; the prepared corpus and indexes remain on the host and are not copied into either image.
+
+### One-time data preparation
+
+Run these commands on the host from the repository root before starting Compose. They create the gitignored `data/arxiv_cs_30000.jsonl` corpus and the two saved indexes that the API reads. The Docker containers intentionally do not build them.
+
+```powershell
+.venv\Scripts\python.exe -m scripts.build_corpus
+.venv\Scripts\python.exe -m scripts.search_demo --query "how can neural networks understand human language?" --rebuild
+.venv\Scripts\python.exe -m scripts.search_demo --model sentence-transformers/all-mpnet-base-v2 --index-dir data/index_mpnet --query "how can neural networks understand human language?" --rebuild
+```
+
+Start both services:
+
+```powershell
+docker compose up --build
+```
+
+Open the UI at [http://localhost:8080](http://localhost:8080) and the API documentation at [http://localhost:8000/docs](http://localhost:8000/docs). The browser calls `VITE_API_BASE_URL` directly (default `http://127.0.0.1:8000`), so that value must be reachable from the browser, not merely from another container.
+
+The API gets `/app/data` from `./data` as a read-only mount, including `arxiv_cs_30000.jsonl`, `arxiv_sbert_index`, and `index_mpnet`. `./data/huggingface-home` is mounted read-write at `HF_HOME=/hf`, so downloaded Hugging Face model weights persist on the host without being baked into the API image. The committed `docs/results` snapshot is mounted read-only at `/app/docs/results` for `/evaluation`.
+
+CPU startup can take several minutes: Compose gives the API a three-minute healthcheck grace period, then allows another two minutes of 10-second checks. First startup may also download model weights into the cache. If the corpus or an index is missing, the API retains its existing behavior: it starts with the affected method unavailable and logs the host command to build it.
+
+Stop services with `docker compose down`. The model cache stays in `./data/huggingface-home`; remove that host folder separately only when a fresh model download is wanted.
+
+### Optional NVIDIA GPU
+
+CPU is the default and does not require a GPU. For an NVIDIA host with current NVIDIA drivers and Docker Desktop GPU support, use the optional override:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+```
+
+The override uses Compose GPU device reservations and changes the PyTorch wheel index to CUDA 12.8 (`https://download.pytorch.org/whl/cu128`). Change `TORCH_CUDA_INDEX_URL` in a local `.env` if a different CUDA wheel index matches the installed driver. This GPU configuration is not hardware-tested in this repository; CPU mode is expected to be slower.
+
+| Problem | Check |
+| --- | --- |
+| Port already in use | Set `API_PORT` or `WEB_PORT` in an uncommitted `.env`, then restart Compose. |
+| First start is slow | Watch `docker compose logs -f api`; model weights download once into `data/huggingface-home`. |
+| Browser console shows CORS failure | Ensure `VITE_API_BASE_URL` and `API_CORS_ORIGINS` match the published UI origin, then rebuild `web`. |
+| Missing data or methods unavailable | Run the host preparation commands above; confirm `data/` contains the corpus and both index folders. |
+| Windows mount or line-ending issue | Run from the repository root in a WSL 2-backed Docker Desktop checkout; use LF line endings for Dockerfiles and Compose YAML. |
+
 ## Run the API
 
 Build the arXiv corpus and at least one saved SBERT index as described below, then start the server from the repository root. Do not use `--reload`: it creates another process and reloads the models.
