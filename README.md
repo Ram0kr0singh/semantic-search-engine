@@ -36,19 +36,28 @@ Values below are rounded from the committed [evaluation summary](docs/results/su
 | SciFact | BM25 | 0.6663 | 0.8792 |
 | SciFact | MiniLM | 0.6451 | 0.9250 |
 | SciFact | MPNet | 0.6557 | 0.9417 |
+| SciFact | Hybrid (MiniLM) | 0.6850 | 0.9543 |
+| SciFact | Hybrid (MPNet) | 0.6861 | 0.9600 |
 | FiQA | TF-IDF | 0.1488 | 0.4671 |
 | FiQA | BM25 | 0.2223 | 0.5132 |
 | FiQA | MiniLM | 0.3687 | 0.7061 |
 | FiQA | MPNet | 0.4996 | 0.8197 |
+| FiQA | Hybrid (MiniLM) | 0.3321 | 0.6955 |
+| FiQA | Hybrid (MPNet) | 0.3991 | 0.7983 |
 
-- On SciFact, BM25 has the highest raw nDCG@10, MRR@10, and Recall@1. No
-  pairwise nDCG@10 difference is statistically distinguishable after Holm
-  correction on 300 queries. MPNet's Recall@100 advantage over BM25 is
-  significant (adjusted p = 0.0136).
-- On FiQA, all dense-versus-keyword differences are statistically significant
-  for nDCG@10 and Recall@100.
+- On SciFact, hybrid has the highest raw scores, but its nDCG@10 gain over
+  BM25 or MPNet is not statistically distinguishable after Holm correction.
+  Its Recall@100 gain over BM25 is significant; Hybrid (MiniLM) over MiniLM on
+  nDCG@10 is borderline.
+- On FiQA, hybrid is significantly worse than its dense component and
+  significantly better than BM25. One untested hypothesis is that equal-weight
+  RRF lets BM25 ranks displace more useful dense ranks for these paraphrased
+  questions.
 - BM25 is the fastest method per query and cheapest to index in these runs.
   Sentence-BERT indexing takes longer, especially MPNet on FiQA.
+
+The fusion design—RRF with k = 60, depth 100, and equal weights—was fixed
+before running the benchmarks.
 
 The committed results are from one laptop run; timings vary run to run.
 Hardware note from the summary: **RTX 4060 Laptop GPU, single run per
@@ -260,12 +269,12 @@ python -m scripts.export_results --hardware-note "RTX 4060 Laptop GPU, single ru
 
 ## Statistical analysis
 
-- On SciFact (300 queries), no pairwise nDCG@10 difference is significant after
-  Holm correction.
-- On SciFact, MPNet's Recall@100 advantage over BM25 is significant after Holm
-  correction (adjusted p = 0.0136).
-- On FiQA (648 queries), all dense-versus-keyword differences are significant
-  for nDCG@10 and Recall@100.
+- On SciFact (300 queries), hybrid has the highest raw scores, but its nDCG@10
+  gain over BM25 or MPNet is not statistically distinguishable after Holm
+  correction. Its Recall@100 gain over BM25 is significant, and Hybrid
+  (MiniLM) over MiniLM on nDCG@10 is borderline.
+- On FiQA (648 queries), each hybrid is significantly worse than its dense
+  component and significantly better than BM25 for nDCG@10 and Recall@100.
 
 See the [full statistical analysis](docs/analysis/analysis.md) for paired
 comparisons, query-level examples, and breakdowns.
@@ -293,10 +302,8 @@ times. Query latency measures the end-to-end hybrid search, including both
 component searches and fusion.
 
 In the latest committed snapshot, indexing FiQA with MPNet took 422.38 seconds
-on the noted laptop GPU. Index-build timings vary between runs on the same
-laptop: an earlier FiQA MPNet run took 683.7 s versus 422 s in the latest.
-Model loading is measured separately from index build time by the evaluation
-harness.
+on the noted laptop GPU. Model loading is measured separately from index build
+time by the evaluation harness.
 
 ## Testing
 
@@ -343,7 +350,8 @@ docker-compose*.yml    Default and optional GPU Compose configurations
   documentation records its license as CC0-1.0.
 - General-purpose embedding models can return topical matches rather than
   intended meaning, particularly for out-of-domain queries.
-- Retrieval has no reranker or hybrid fusion stage.
+- Retrieval has no reranker; the evaluation includes fixed, equal-weight RRF
+  hybrid fusion of BM25 and Sentence-BERT candidates.
 - Docker defaults to CPU; local CUDA use requires a compatible PyTorch build
   and GPU environment.
 - Timing values are from a single laptop run and will vary with hardware and
@@ -357,9 +365,7 @@ docker-compose*.yml    Default and optional GPU Compose configurations
 
 ## Future work
 
-- Add hybrid BM25 and dense retrieval with rank fusion, motivated by SciFact's
-  complementary raw results: BM25 has higher raw nDCG@10, MRR@10, and Recall@1,
-  while MPNet has higher Recall@100.
+- Evaluate weighted fusion tuned on a separate development split.
 - Evaluate a cross-encoder reranker.
 - Add passage-level search over uploaded documents using the existing chunker.
 - Add benchmark datasets such as NFCorpus.

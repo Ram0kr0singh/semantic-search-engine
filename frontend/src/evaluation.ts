@@ -2,6 +2,35 @@ import type { EvaluationRun } from './api';
 
 export type MetricDirection = 'higher' | 'lower';
 
+function modelShortName(model: string | null): string | null {
+  const normalized = model?.toLowerCase() ?? '';
+  if (normalized.includes('minilm')) return 'MiniLM';
+  if (normalized.includes('mpnet')) return 'MPNet';
+  return null;
+}
+
+export function evaluationLabel(run: Pick<EvaluationRun, 'method' | 'model'>): string {
+  if (run.method === 'tfidf') return 'TF-IDF';
+  if (run.method === 'bm25') return 'BM25';
+
+  const model = modelShortName(run.model);
+  if (run.method === 'sbert' && model) return model;
+  if (run.method === 'hybrid' && model) return `Hybrid (${model})`;
+  return run.model ?? run.method;
+}
+
+export function evaluationMethodOrder(run: Pick<EvaluationRun, 'method' | 'model'>): number {
+  if (run.method === 'tfidf') return 0;
+  if (run.method === 'bm25') return 1;
+
+  const model = modelShortName(run.model);
+  if (run.method === 'sbert' && model === 'MiniLM') return 2;
+  if (run.method === 'sbert' && model === 'MPNet') return 3;
+  if (run.method === 'hybrid' && model === 'MiniLM') return 4;
+  if (run.method === 'hybrid' && model === 'MPNet') return 5;
+  return 6;
+}
+
 export function isBestMetric(
   run: Partial<EvaluationRun>,
   runs: Array<Partial<EvaluationRun>>,

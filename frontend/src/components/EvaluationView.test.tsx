@@ -27,8 +27,10 @@ function run(changes: Partial<EvaluationRun>): EvaluationRun {
 describe('EvaluationView', () => {
   it('renders best values, dataset names, and rows in baseline-first order', async () => {
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(JSON.stringify({ runs: [
-      run({ method: 'sbert', model: 'MPNet', ndcg_at_10: .9, index_build_seconds: 40, average_query_latency_ms: 30 }),
-      run({ method: 'sbert', model: 'MiniLM', ndcg_at_10: .8, index_build_seconds: 20, average_query_latency_ms: 15.48 }),
+      run({ method: 'sbert', model: 'sentence-transformers/all-mpnet-base-v2', ndcg_at_10: .9, index_build_seconds: 40, average_query_latency_ms: 30 }),
+      run({ method: 'sbert', model: 'sentence-transformers/all-MiniLM-L6-v2', ndcg_at_10: .8, index_build_seconds: 20, average_query_latency_ms: 15.48 }),
+      run({ method: 'hybrid', model: 'sentence-transformers/all-mpnet-base-v2', ndcg_at_10: .7 }),
+      run({ method: 'hybrid', model: 'sentence-transformers/all-MiniLM-L6-v2', ndcg_at_10: .6 }),
       run({ method: 'zeta', model: null, index_build_seconds: 30, average_query_latency_ms: 40 }),
       run({ method: 'bm25', model: null, index_build_seconds: 15, average_query_latency_ms: 18 }),
       run({ method: 'alpha', model: null, index_build_seconds: 30, average_query_latency_ms: 40 }),
@@ -53,6 +55,8 @@ describe('EvaluationView', () => {
       'BM25',
       'MiniLM',
       'MPNet',
+      'Hybrid (MiniLM)',
+      'Hybrid (MPNet)',
       'alpha',
       'zeta',
     ]);
@@ -62,6 +66,19 @@ describe('EvaluationView', () => {
     expect(mpnetRow?.querySelectorAll('td')[0]?.querySelector('[aria-label="Best value"]')).not.toBeNull();
     expect(tfidfRow?.querySelectorAll('td')[0]?.querySelector('[aria-label="Best value"]')).toBeNull();
     expect(mpnetRow?.querySelectorAll('td')[5]?.querySelector('[aria-label="Best value"]')).toBeNull();
+    expect(within(scifactSection).getAllByTitle('sentence-transformers/all-MiniLM-L6-v2')).toHaveLength(4);
+    expect(within(scifactSection).getAllByTitle('sentence-transformers/all-mpnet-base-v2')).toHaveLength(4);
+    const chart = within(scifactSection).getByRole('img');
+    expect(Array.from(chart.querySelectorAll('.font-medium')).map((element) => element.textContent)).toEqual([
+      'TF-IDF',
+      'BM25',
+      'MiniLM',
+      'MPNet',
+      'Hybrid (MiniLM)',
+      'Hybrid (MPNet)',
+      'alpha',
+      'zeta',
+    ]);
   });
 
   it('shows the export command for a missing snapshot', async () => {
