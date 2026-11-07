@@ -41,11 +41,12 @@ Values below are rounded from the committed [evaluation summary](docs/results/su
 | FiQA | MiniLM | 0.3687 | 0.7061 |
 | FiQA | MPNet | 0.4996 | 0.8197 |
 
-- On SciFact, BM25 has the best nDCG@10, MRR@10, and Recall@1, while MPNet has
-  the best Recall@100. Keyword ranking is strongest near the top here, while
-  semantic search finds more relevant papers deeper in the list.
-- On FiQA, both dense models are far ahead of BM25 and TF-IDF on nDCG@10 and
-  Recall@100.
+- On SciFact, BM25 has the highest raw nDCG@10, MRR@10, and Recall@1. No
+  pairwise nDCG@10 difference is statistically distinguishable after Holm
+  correction on 300 queries. MPNet's Recall@100 advantage over BM25 is
+  significant (adjusted p = 0.0136).
+- On FiQA, all dense-versus-keyword differences are statistically significant
+  for nDCG@10 and Recall@100.
 - BM25 is the fastest method per query and cheapest to index in these runs.
   Sentence-BERT indexing takes longer, especially MPNet on FiQA.
 
@@ -237,14 +238,15 @@ curl.exe -X POST http://127.0.0.1:8000/search `
 
 The evaluation script loads the test splits for SciFact and FiQA. The first
 run downloads dataset files and selected Sentence-Transformer model weights.
-Run all registered methods on both datasets, then evaluate MPNet explicitly:
+Run all registered methods on both datasets, saving the query-level values used
+for reproducible statistical analysis, then evaluate MPNet explicitly:
 
 ```powershell
-python -m scripts.evaluate --dataset all --method all
-python -m scripts.evaluate --dataset scifact --method bm25
-python -m scripts.evaluate --dataset fiqa --method bm25
-python -m scripts.evaluate --dataset fiqa --method sbert --model sentence-transformers/all-mpnet-base-v2
-python -m scripts.evaluate --dataset scifact --method sbert --model sentence-transformers/all-mpnet-base-v2
+python -m scripts.evaluate --dataset all --method all --save-per-query
+python -m scripts.evaluate --dataset scifact --method bm25 --save-per-query
+python -m scripts.evaluate --dataset fiqa --method bm25 --save-per-query
+python -m scripts.evaluate --dataset fiqa --method sbert --model sentence-transformers/all-mpnet-base-v2 --save-per-query
+python -m scripts.evaluate --dataset scifact --method sbert --model sentence-transformers/all-mpnet-base-v2 --save-per-query
 ```
 
 Reports are written to `results/`. Export validated reports to update the
@@ -254,9 +256,35 @@ Evaluation view snapshot:
 python -m scripts.export_results --hardware-note "RTX 4060 Laptop GPU, single run per configuration; timings vary run to run" --markdown
 ```
 
-In the committed snapshot, indexing FiQA with MPNet took 683.70 seconds on the
-noted laptop GPU. Model loading is measured separately from index build time by
-the evaluation harness.
+## Statistical analysis
+
+- On SciFact (300 queries), no pairwise nDCG@10 difference is significant after
+  Holm correction.
+- On SciFact, MPNet's Recall@100 advantage over BM25 is significant after Holm
+  correction (adjusted p = 0.0136).
+- On FiQA (648 queries), all dense-versus-keyword differences are significant
+  for nDCG@10 and Recall@100.
+
+See the [full statistical analysis](docs/analysis/analysis.md) for paired
+comparisons, query-level examples, and breakdowns.
+
+The evaluation command's `--save-per-query` flag writes the query-level metric
+inputs. After exporting them, regenerate the paired bootstrap, error, and
+bucket analysis with:
+
+```powershell
+python -m scripts.analyze_results
+```
+
+The generated report is [docs/analysis/analysis.md](docs/analysis/analysis.md).
+It is intentionally generated only from per-query benchmark runs; do not copy
+aggregate numbers into it manually.
+
+In the latest committed snapshot, indexing FiQA with MPNet took 422.38 seconds
+on the noted laptop GPU. Index-build timings vary between runs on the same
+laptop: an earlier FiQA MPNet run took 683.7 s versus 422 s in the latest.
+Model loading is measured separately from index build time by the evaluation
+harness.
 
 ## Testing
 
@@ -308,6 +336,8 @@ docker-compose*.yml    Default and optional GPU Compose configurations
   and GPU environment.
 - Timing values are from a single laptop run and will vary with hardware and
   conditions.
+- Significance tests use 300 SciFact queries and 648 FiQA queries, with one run
+  per configuration and no hyperparameter tuning.
 - PostgreSQL is not used: the demo corpus is small, read-only for search, and
   loaded into memory by the API.
 - The text chunker is a standalone utility; the current API searches papers
@@ -315,9 +345,9 @@ docker-compose*.yml    Default and optional GPU Compose configurations
 
 ## Future work
 
-- Add hybrid BM25 and dense retrieval with rank fusion, motivated by the
-  complementary SciFact result: BM25 leads at the top while MPNet has higher
-  Recall@100.
+- Add hybrid BM25 and dense retrieval with rank fusion, motivated by SciFact's
+  complementary raw results: BM25 has higher raw nDCG@10, MRR@10, and Recall@1,
+  while MPNet has higher Recall@100.
 - Evaluate a cross-encoder reranker.
 - Add passage-level search over uploaded documents using the existing chunker.
 - Add benchmark datasets such as NFCorpus.

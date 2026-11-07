@@ -42,6 +42,7 @@ describe('EvaluationView', () => {
     expect(screen.getByRole('heading', { name: 'FiQA' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'custom-dataset' })).toBeInTheDocument();
     expect(screen.getByText(/test laptop/)).toBeInTheDocument();
+    expect(screen.getByText('Stars mark the highest raw value in a column. They do not indicate a statistically significant difference; see docs/analysis/analysis.md.')).toBeInTheDocument();
     expect(screen.getByText('Lower is better for index build time and query latency. TF-IDF runs on the CPU; Sentence-BERT query time includes embedding the query on the GPU.')).toBeInTheDocument();
 
     const scifactSection = screen.getByRole('heading', { name: 'SciFact' }).closest('section');

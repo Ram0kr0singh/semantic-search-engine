@@ -34,5 +34,5 @@ export function EvaluationView() {
       const best = isBestMetric(run, runs, key, direction);
       return <td key={String(key)} className={`p-2 ${best ? 'font-bold' : ''}`}>{best && <span aria-label="Best value">★ </span>}{format(Number(run[key]))}</td>;
     })}</tr>)}</tbody></table></div><Chart runs={runs} /></section>;
-  })}<p className="text-xs text-slate-500">Lower is better for index build time and query latency. TF-IDF runs on the CPU; Sentence-BERT query time includes embedding the query on the GPU.</p></section>;
+  })}<p className="text-xs text-slate-500">Stars mark the highest raw value in a column. They do not indicate a statistically significant difference; see docs/analysis/analysis.md.</p><p className="text-xs text-slate-500">Lower is better for index build time and query latency. TF-IDF runs on the CPU; Sentence-BERT query time includes embedding the query on the GPU.</p></section>;
 }

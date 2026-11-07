@@ -6,6 +6,7 @@ __pycache__/
 .mypy_cache/
 .coverage
 htmlcov/
+.test-tmp*/
 
 # Environments and configuration
 .venv/
@@ -18,6 +19,11 @@ results/
 !docs/
 !docs/results/
 !docs/results/*.json
+!docs/results/per_query/
+!docs/results/per_query/*.json
+!docs/analysis/
+!docs/analysis/*.json
+!docs/analysis/*.md
 
 # Keep Python source in the backend data package; only benchmark caches are ignored.
 !backend/app/data/

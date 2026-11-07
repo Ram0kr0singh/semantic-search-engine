@@ -9,7 +9,7 @@ from pathlib import Path
 import re
 
 from backend.app.data.beir import BeirDataset, dataset_names, load_dataset
-from backend.app.evaluation.runner import EvaluationReport, evaluate
+from backend.app.evaluation.runner import EvaluationReport, PerQueryMetrics, evaluate, evaluate_with_per_query
 from backend.app.retrieval.base import Retriever
 from backend.app.retrieval.bm25 import BM25Retriever
 from backend.app.retrieval.sbert import SentenceBertRetriever
@@ -36,6 +36,11 @@ def result_filename(dataset: str, method: str, model_name: str | None = None) ->
         model_slug = re.sub(r"[^A-Za-z0-9._-]+", "-", model_name.rsplit("/", 1)[-1]).strip("-._").lower()
         return f"{dataset}_{method}_{model_slug}.json"
     return f"{dataset}_{method}.json"
+
+
+def per_query_filename(dataset: str, method: str, model_name: str | None = None) -> str:
+    """Return the companion filename used for saved query-level metrics."""
+    return f"{Path(result_filename(dataset, method, model_name)).stem}_perquery.json"
 
 
 def print_report(method: str, report: EvaluationReport) -> None:
@@ -116,6 +121,7 @@ def main() -> None:
     )
     parser.add_argument("--data-dir", type=Path, default=Path("data"), help="Dataset cache directory.")
     parser.add_argument("--results-dir", type=Path, default=Path("results"), help="Directory for JSON reports.")
+    parser.add_argument("--save-per-query", action="store_true", help="Also save query-level metrics for statistical analysis.")
     args = parser.parse_args()
 
     args.results_dir.mkdir(parents=True, exist_ok=True)
@@ -126,10 +132,15 @@ def main() -> None:
         print_dataset_header(name, dataset)
         # SentenceBertRetriever loads its model during construction, before
         # evaluate starts its index timer. That keeps index timings comparable.
-        reports = {
-            method: evaluate(build_retriever(method, args.model), dataset.corpus, dataset.queries, dataset.qrels)
-            for method in methods
-        }
+        reports: dict[str, EvaluationReport] = {}
+        per_query: dict[str, list[PerQueryMetrics]] = {}
+        for method in methods:
+            if args.save_per_query:
+                reports[method], per_query[method] = evaluate_with_per_query(
+                    build_retriever(method, args.model), dataset.corpus, dataset.queries, dataset.qrels
+                )
+            else:
+                reports[method] = evaluate(build_retriever(method, args.model), dataset.corpus, dataset.queries, dataset.qrels)
         if args.method == "all":
             print_comparison(reports)
         else:
@@ -146,6 +157,18 @@ def main() -> None:
             }
             output_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
             print(f"Saved JSON report: {output_path}")
+            if args.save_per_query:
+                query_output_path = args.results_dir / per_query_filename(name, method, args.model)
+                query_payload = {
+                    "method": method,
+                    "dataset": name,
+                    "model": args.model if method == "sbert" else None,
+                    "generated_at": payload["generated_at"],
+                    "query_count": report.query_count,
+                    "queries": [item.to_dict() for item in per_query[method]],
+                }
+                query_output_path.write_text(json.dumps(query_payload, indent=2) + "\n", encoding="utf-8")
+                print(f"Saved per-query JSON: {query_output_path}")
 
 
 if __name__ == "__main__":

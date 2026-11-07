@@ -11,6 +11,10 @@ from typing import Any
 METRICS = ("recall_at_1", "recall_at_5", "recall_at_10", "recall_at_100", "mrr_at_10", "ndcg_at_10")
 TIMINGS = ("index_build_seconds", "average_query_latency_ms")
 REQUIRED = ("method", "dataset", "generated_at", "query_count", *METRICS, *TIMINGS)
+PER_QUERY_FIELDS = (
+    "query_id", "query", "relevant_document_count", "ndcg_at_10", "mrr_at_10",
+    "recall_at_10", "recall_at_100", "first_relevant_rank",
+)
 
 
 def validate_run(payload: object, filename: str) -> tuple[dict[str, Any] | None, str | None]:
@@ -39,11 +43,56 @@ def validate_run(payload: object, filename: str) -> tuple[dict[str, Any] | None,
     return payload, None
 
 
+def validate_per_query_run(payload: object, filename: str) -> tuple[dict[str, Any] | None, str | None]:
+    """Validate a saved query-level run before committing it as a snapshot."""
+    if not isinstance(payload, dict):
+        return None, "JSON root is not an object"
+    for field in ("method", "dataset", "generated_at", "query_count", "queries"):
+        if field not in payload:
+            return None, f"missing required fields: {field}"
+    if not isinstance(payload["method"], str) or not payload["method"].strip():
+        return None, "missing method identity"
+    if not isinstance(payload["dataset"], str) or not payload["dataset"].strip() or payload["dataset"].startswith("BEIR "):
+        return None, "missing or stale dataset identity"
+    if payload["method"] == "sbert" and (not isinstance(payload.get("model"), str) or not payload["model"].strip()):
+        return None, "stale SBERT report without a model identity"
+    if isinstance(payload["query_count"], bool) or not isinstance(payload["query_count"], int) or payload["query_count"] < 0:
+        return None, "query_count must be a non-negative integer"
+    queries = payload["queries"]
+    if not isinstance(queries, list) or len(queries) != payload["query_count"]:
+        return None, "queries must be a list matching query_count"
+    seen_ids: set[str] = set()
+    for item in queries:
+        if not isinstance(item, dict):
+            return None, "query entry is not an object"
+        missing = [field for field in PER_QUERY_FIELDS if field not in item]
+        if missing:
+            return None, f"query entry missing required fields: {', '.join(missing)}"
+        if not isinstance(item["query_id"], str) or not item["query_id"] or item["query_id"] in seen_ids:
+            return None, "query entry has a missing or duplicate query_id"
+        seen_ids.add(item["query_id"])
+        if not isinstance(item["query"], str):
+            return None, "query entry has non-string query"
+        count = item["relevant_document_count"]
+        if isinstance(count, bool) or not isinstance(count, int) or count < 0:
+            return None, "relevant_document_count must be a non-negative integer"
+        for field in ("ndcg_at_10", "mrr_at_10", "recall_at_10", "recall_at_100"):
+            value = item[field]
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 1:
+                return None, f"{field} must be numeric and in [0, 1]"
+        rank = item["first_relevant_rank"]
+        if rank is not None and (isinstance(rank, bool) or not isinstance(rank, int) or not 1 <= rank <= 100):
+            return None, "first_relevant_rank must be null or an integer in [1, 100]"
+    return payload, None
+
+
 def export_results(results_dir: Path, output_dir: Path, hardware_note: str) -> tuple[list[Path], list[tuple[Path, str]], dict[str, Any]]:
     output_dir.mkdir(parents=True, exist_ok=True)
     runs: list[tuple[Path, dict[str, Any]]] = []
     skipped: list[tuple[Path, str]] = []
     for source in sorted(results_dir.glob("*.json")):
+        if source.name.endswith("_perquery.json"):
+            continue
         try:
             payload = json.loads(source.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
@@ -63,6 +112,26 @@ def export_results(results_dir: Path, output_dir: Path, hardware_note: str) -> t
     return exported, skipped, summary
 
 
+def export_per_query_results(results_dir: Path, output_dir: Path) -> tuple[list[Path], list[tuple[Path, str]]]:
+    """Copy only validated current per-query files into the committed snapshot."""
+    destination_dir = output_dir / "per_query"
+    destination_dir.mkdir(parents=True, exist_ok=True)
+    exported: list[Path] = []
+    skipped: list[tuple[Path, str]] = []
+    for source in sorted(results_dir.glob("*_perquery.json")):
+        try:
+            payload = json.loads(source.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            skipped.append((source, f"invalid JSON: {exc}")); continue
+        _, reason = validate_per_query_run(payload, source.name)
+        if reason:
+            skipped.append((source, reason)); continue
+        destination = destination_dir / source.name
+        shutil.copyfile(source, destination)
+        exported.append(destination)
+    return exported, skipped
+
+
 def markdown(summary: dict[str, Any]) -> str:
     lines = ["| Dataset | Method / model | nDCG@10 | MRR@10 | Recall@1 | Recall@10 | Recall@100 | Index build (s) | Query latency (ms) |", "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"]
     for run in summary["runs"]:
@@ -79,8 +148,11 @@ def main() -> None:
     parser.add_argument("--markdown", action="store_true", help="Print a Markdown metrics table after exporting.")
     args = parser.parse_args()
     exported, skipped, summary = export_results(args.results_dir, args.output_dir, args.hardware_note)
+    per_query_exported, per_query_skipped = export_per_query_results(args.results_dir, args.output_dir)
     for path in exported: print(f"Exported: {path}")
     for path, reason in skipped: print(f"Skipped: {path} ({reason})")
+    for path in per_query_exported: print(f"Exported per-query: {path}")
+    for path, reason in per_query_skipped: print(f"Skipped per-query: {path} ({reason})")
     print(f"Wrote: {args.output_dir / 'summary.json'}")
     if args.markdown: print(markdown(summary))
 

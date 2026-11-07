@@ -1,0 +1,724 @@
+{
+  "method": {
+    "bootstrap_resamples": 10000,
+    "seed": 20261107,
+    "confidence_interval": "2.5th and 97.5th percentiles of paired bootstrap means",
+    "p_value": "two-sided centered paired bootstrap with add-one correction: resample differences centered at their observed mean; p = (count_extreme + 1) / (resamples + 1), where count_extreme is the number of null bootstrap means with absolute value at least the observed absolute mean",
+    "holm": "Holm-Bonferroni adjustment across the eight dataset-pair comparisons separately for each metric"
+  },
+  "datasets": {
+    "fiqa": {
+      "query_count": 648,
+      "comparisons": {
+        "ndcg_at_10": [
+          {
+            "method_a": "BM25",
+            "method_b": "TF-IDF",
+            "metric": "ndcg_at_10",
+            "mean_difference": 0.07352912968718062,
+            "ci_low": 0.05839514474079692,
+            "ci_high": 0.08868311069144814,
+            "p_value": 9.999000099990002e-05,
+            "wins": 204,
+            "losses": 62,
+            "ties": 382,
+            "holm_adjusted_p_value": 0.0007999200079992001
+          },
+          {
+            "method_a": "MiniLM",
+            "method_b": "BM25",
+            "metric": "ndcg_at_10",
+            "mean_difference": 0.14636571489009,
+            "ci_low": 0.12080661797902344,
+            "ci_high": 0.17159762815607152,
+            "p_value": 9.999000099990002e-05,
+            "wins": 322,
+            "losses": 101,
+            "ties": 225,
+            "holm_adjusted_p_value": 0.0007999200079992001
+          },
+          {
+            "method_a": "MPNet",
+            "method_b": "BM25",
+            "metric": "ndcg_at_10",
+            "mean_difference": 0.2773268861131892,
+            "ci_low": 0.25052287319129085,
+            "ci_high": 0.30353534070871,
+            "p_value": 9.999000099990002e-05,
+            "wins": 417,
+            "losses": 64,
+            "ties": 167,
+            "holm_adjusted_p_value": 0.0007999200079992001
+          },
+          {
+            "method_a": "MPNet",
+            "method_b": "MiniLM",
+            "metric": "ndcg_at_10",
+            "mean_difference": 0.13096117122309917,
+            "ci_low": 0.11125625391579307,
+            "ci_high": 0.15115628851519058,
+            "p_value": 9.999000099990002e-05,
+            "wins": 323,
+            "losses": 93,
+            "ties": 232,
+            "holm_adjusted_p_value": 0.0007999200079992001
+          }
+        ],
+        "recall_at_100": [
+          {
+            "method_a": "BM25",
+            "method_b": "TF-IDF",
+            "metric": "recall_at_100",
+            "mean_difference": 0.04608173462340129,
+            "ci_low": 0.025503959132431357,
+            "ci_high": 0.06662857172405781,
+            "p_value": 9.999000099990002e-05,
+            "wins": 102,
+            "losses": 48,
+            "ties": 498,
+            "holm_adjusted_p_value": 0.0007999200079992001
+          },
+          {
+            "method_a": "MiniLM",
+            "method_b": "BM25",
+            "metric": "recall_at_100",
+            "mean_difference": 0.19287103928307633,
+            "ci_low": 0.1627265164533683,
+            "ci_high": 0.22347398282872818,
+            "p_value": 9.999000099990002e-05,
+            "wins": 259,
+            "losses": 44,
+            "ties": 345,
+            "holm_adjusted_p_value": 0.0007999200079992001
+          },
+          {
+            "method_a": "MPNet",
+            "method_b": "BM25",
+            "metric": "recall_at_100",
+            "mean_difference": 0.3065057884502329,
+            "ci_low": 0.2745521582327138,
+            "ci_high": 0.33762113561592727,
+            "p_value": 9.999000099990002e-05,
+            "wins": 335,
+            "losses": 16,
+            "ties": 297,
+            "holm_adjusted_p_value": 0.0007999200079992001
+          },
+          {
+            "method_a": "MPNet",
+            "method_b": "MiniLM",
+            "metric": "recall_at_100",
+            "mean_difference": 0.11363474916715656,
+            "ci_low": 0.09293731934646286,
+            "ci_high": 0.13450923476386442,
+            "p_value": 9.999000099990002e-05,
+            "wins": 172,
+            "losses": 17,
+            "ties": 459,
+            "holm_adjusted_p_value": 0.0007999200079992001
+          }
+        ]
+      },
+      "error_analysis": {
+        "bm25_over_mpnet": {
+          "max_margin": 1.0,
+          "queries_at_max_margin": 2,
+          "bm25_wins": 64,
+          "mpnet_wins": 417,
+          "examples": [
+            {
+              "query_id": "10601",
+              "query": "Bitcoin Cost Basis Purchases",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 1,
+              "mpnet_first_relevant_rank": 61
+            },
+            {
+              "query_id": "5155",
+              "query": "For insurance, why should you refuse $4,000/year for only 10 years and prefer $500/year indefinitely?",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 1,
+              "mpnet_first_relevant_rank": 24
+            },
+            {
+              "query_id": "1310",
+              "query": "Is is possible to take a mortgage using Bitcoin as collateral?",
+              "relevant_document_count": 1,
+              "ndcg_margin": 0.6309297535714575,
+              "bm25_first_relevant_rank": 2,
+              "mpnet_first_relevant_rank": null
+            },
+            {
+              "query_id": "7992",
+              "query": "What type of pension should I get?",
+              "relevant_document_count": 2,
+              "ndcg_margin": 0.6131471927654584,
+              "bm25_first_relevant_rank": 1,
+              "mpnet_first_relevant_rank": 23
+            },
+            {
+              "query_id": "6849",
+              "query": "What do the points in a stock market index epresent?",
+              "relevant_document_count": 1,
+              "ndcg_margin": 0.5693234419266069,
+              "bm25_first_relevant_rank": 1,
+              "mpnet_first_relevant_rank": 4
+            },
+            {
+              "query_id": "9737",
+              "query": "Long(100%)-Short(-100%) investment explanation",
+              "relevant_document_count": 3,
+              "ndcg_margin": 0.5151685451276613,
+              "bm25_first_relevant_rank": 1,
+              "mpnet_first_relevant_rank": 3
+            },
+            {
+              "query_id": "1469",
+              "query": "Why do some companies report how well their EBITDA performed even if their overall net profit did equally well?",
+              "relevant_document_count": 1,
+              "ndcg_margin": 0.5,
+              "bm25_first_relevant_rank": 1,
+              "mpnet_first_relevant_rank": 3
+            },
+            {
+              "query_id": "8592",
+              "query": "Tax implications of exercising ISOs and using proceeds to exercise more ISOs",
+              "relevant_document_count": 3,
+              "ndcg_margin": 0.46927872602275644,
+              "bm25_first_relevant_rank": 1,
+              "mpnet_first_relevant_rank": 13
+            },
+            {
+              "query_id": "6875",
+              "query": "Where to find free Thailand stock recommendations and research?",
+              "relevant_document_count": 1,
+              "ndcg_margin": 0.43067655807339306,
+              "bm25_first_relevant_rank": 4,
+              "mpnet_first_relevant_rank": null
+            },
+            {
+              "query_id": "5331",
+              "query": "Exercises of employee share options",
+              "relevant_document_count": 1,
+              "ndcg_margin": 0.38685280723454163,
+              "bm25_first_relevant_rank": 5,
+              "mpnet_first_relevant_rank": 14
+            }
+          ]
+        },
+        "mpnet_over_bm25": {
+          "max_margin": 1.0,
+          "queries_at_max_margin": 35,
+          "bm25_wins": 64,
+          "mpnet_wins": 417,
+          "examples": [
+            {
+              "query_id": "106",
+              "query": "What approaches are there for pricing a small business?",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 68,
+              "mpnet_first_relevant_rank": 1
+            },
+            {
+              "query_id": "10628",
+              "query": "What happens with the \u201clong\u201d buyer of a stock when somebody else's short fails (that is, unlimited loss bankrupts short seller)",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 75,
+              "mpnet_first_relevant_rank": 1
+            },
+            {
+              "query_id": "1074",
+              "query": "How common is \u201cpass-through\u201d health insurance?",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": null,
+              "mpnet_first_relevant_rank": 1
+            },
+            {
+              "query_id": "11088",
+              "query": "Am I required to have a lawyer create / oversee creation of my will?",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": null,
+              "mpnet_first_relevant_rank": 1
+            },
+            {
+              "query_id": "1230",
+              "query": "How does Walmart account their expired food",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": null,
+              "mpnet_first_relevant_rank": 1
+            },
+            {
+              "query_id": "1824",
+              "query": "Is there a way to open a U.S. bank account for my LLC remotely?",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": null,
+              "mpnet_first_relevant_rank": 1
+            },
+            {
+              "query_id": "1915",
+              "query": "Should I pay a company who failed to collect VAT from me over 6 months ago?",
+              "relevant_document_count": 2,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 15,
+              "mpnet_first_relevant_rank": 1
+            },
+            {
+              "query_id": "1948",
+              "query": "Which colors can one use to fill out a check in the US?",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": null,
+              "mpnet_first_relevant_rank": 1
+            },
+            {
+              "query_id": "2076",
+              "query": "Can vet / veterinary bills be considered deductions (tax-deductible) for Income Tax purposes [Canada]?",
+              "relevant_document_count": 2,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": null,
+              "mpnet_first_relevant_rank": 1
+            },
+            {
+              "query_id": "2388",
+              "query": "Do financial advisors get better deals on mortgages?",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 16,
+              "mpnet_first_relevant_rank": 1
+            }
+          ]
+        }
+      },
+      "breakdowns": {
+        "query_length_tertiles": {
+          "short": {
+            "query_count": 216,
+            "mean_ndcg_at_10": {
+              "BM25": 0.19200821453540934,
+              "MiniLM": 0.3184798054900835,
+              "MPNet": 0.4312592339636832,
+              "TF-IDF": 0.11787999171046463
+            },
+            "word_count_range": [
+              2,
+              9
+            ]
+          },
+          "medium": {
+            "query_count": 216,
+            "mean_ndcg_at_10": {
+              "BM25": 0.2603627761420218,
+              "MiniLM": 0.4005912132885841,
+              "MPNet": 0.537693259166422,
+              "TF-IDF": 0.18911011032311312
+            },
+            "word_count_range": [
+              9,
+              13
+            ]
+          },
+          "long": {
+            "query_count": 216,
+            "mean_ndcg_at_10": {
+              "BM25": 0.21454597417444626,
+              "MiniLM": 0.38694309074347977,
+              "MPNet": 0.5299451300613397,
+              "TF-IDF": 0.13933947375675781
+            },
+            "word_count_range": [
+              13,
+              31
+            ]
+          }
+        },
+        "relevant_documents": {
+          "1": {
+            "query_count": 220,
+            "mean_ndcg_at_10": {
+              "BM25": 0.23332371330950077,
+              "MiniLM": 0.38823682363737844,
+              "MPNet": 0.4796454500172677,
+              "TF-IDF": 0.1423551147996287
+            }
+          },
+          "2-3": {
+            "query_count": 287,
+            "mean_ndcg_at_10": {
+              "BM25": 0.22597457281215144,
+              "MiniLM": 0.34586397537043,
+              "MPNet": 0.5168375797954932,
+              "TF-IDF": 0.15133541993320135
+            }
+          },
+          "4+": {
+            "query_count": 141,
+            "mean_ndcg_at_10": {
+              "BM25": 0.19764641902714808,
+              "MiniLM": 0.3845672732287032,
+              "MPNet": 0.4957978879733808,
+              "TF-IDF": 0.15358721697847783
+            }
+          }
+        },
+        "omitted_relevant_document_buckets": {}
+      }
+    },
+    "scifact": {
+      "query_count": 300,
+      "comparisons": {
+        "ndcg_at_10": [
+          {
+            "method_a": "BM25",
+            "method_b": "TF-IDF",
+            "metric": "ndcg_at_10",
+            "mean_difference": 0.02454353339073347,
+            "ci_low": 0.0030919390461383377,
+            "ci_high": 0.046045519262918874,
+            "p_value": 0.025197480251974803,
+            "wins": 57,
+            "losses": 32,
+            "ties": 211,
+            "holm_adjusted_p_value": 0.10078992100789921
+          },
+          {
+            "method_a": "MiniLM",
+            "method_b": "BM25",
+            "metric": "ndcg_at_10",
+            "mean_difference": -0.021219331782347802,
+            "ci_low": -0.06023403630740815,
+            "ci_high": 0.017460231705300196,
+            "p_value": 0.28997100289971,
+            "wins": 67,
+            "losses": 74,
+            "ties": 159,
+            "holm_adjusted_p_value": 0.86991300869913
+          },
+          {
+            "method_a": "MPNet",
+            "method_b": "BM25",
+            "metric": "ndcg_at_10",
+            "mean_difference": -0.010604067434514548,
+            "ci_low": -0.05339180288728003,
+            "ci_high": 0.030512427737197857,
+            "p_value": 0.6227377262273772,
+            "wins": 67,
+            "losses": 66,
+            "ties": 167,
+            "holm_adjusted_p_value": 0.86991300869913
+          },
+          {
+            "method_a": "MPNet",
+            "method_b": "MiniLM",
+            "metric": "ndcg_at_10",
+            "mean_difference": 0.010615264347833256,
+            "ci_low": -0.015430986352421077,
+            "ci_high": 0.03706646445961714,
+            "p_value": 0.43005699430056993,
+            "wins": 56,
+            "losses": 50,
+            "ties": 194,
+            "holm_adjusted_p_value": 0.86991300869913
+          }
+        ],
+        "recall_at_100": [
+          {
+            "method_a": "BM25",
+            "method_b": "TF-IDF",
+            "metric": "recall_at_100",
+            "mean_difference": -0.012333333333333333,
+            "ci_low": -0.025333333333333336,
+            "ci_high": -0.002333333333333333,
+            "p_value": 0.0405959404059594,
+            "wins": 0,
+            "losses": 5,
+            "ties": 295,
+            "holm_adjusted_p_value": 0.0811918808119188
+          },
+          {
+            "method_a": "MiniLM",
+            "method_b": "BM25",
+            "metric": "recall_at_100",
+            "mean_difference": 0.04577777777777778,
+            "ci_low": 0.008444444444444444,
+            "ci_high": 0.08511111111111111,
+            "p_value": 0.019198080191980802,
+            "wins": 28,
+            "losses": 11,
+            "ties": 261,
+            "holm_adjusted_p_value": 0.05759424057594241
+          },
+          {
+            "method_a": "MPNet",
+            "method_b": "BM25",
+            "metric": "recall_at_100",
+            "mean_difference": 0.06244444444444445,
+            "ci_low": 0.021222222222222222,
+            "ci_high": 0.10466666666666666,
+            "p_value": 0.0033996600339966003,
+            "wins": 34,
+            "losses": 12,
+            "ties": 254,
+            "holm_adjusted_p_value": 0.013598640135986401
+          },
+          {
+            "method_a": "MPNet",
+            "method_b": "MiniLM",
+            "metric": "recall_at_100",
+            "mean_difference": 0.016666666666666666,
+            "ci_low": -0.013333333333333334,
+            "ci_high": 0.04666666666666667,
+            "p_value": 0.2762723727627237,
+            "wins": 14,
+            "losses": 9,
+            "ties": 277,
+            "holm_adjusted_p_value": 0.2762723727627237
+          }
+        ]
+      },
+      "error_analysis": {
+        "bm25_over_mpnet": {
+          "max_margin": 1.0,
+          "queries_at_max_margin": 11,
+          "bm25_wins": 66,
+          "mpnet_wins": 67,
+          "examples": [
+            {
+              "query_id": "1024",
+              "query": "Recurrent mutations occur frequently within CTCF anchor sites adjacent to oncogenes.",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 1,
+              "mpnet_first_relevant_rank": 64
+            },
+            {
+              "query_id": "1363",
+              "query": "Venules have a thinner or absent smooth layer compared to arterioles.",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 1,
+              "mpnet_first_relevant_rank": null
+            },
+            {
+              "query_id": "1385",
+              "query": "cSMAC formation enhances weak ligand signalling.",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 1,
+              "mpnet_first_relevant_rank": 34
+            },
+            {
+              "query_id": "294",
+              "query": "Crossover hot spots are not found within gene promoters in Saccharomyces cerevisiae.",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 1,
+              "mpnet_first_relevant_rank": 38
+            },
+            {
+              "query_id": "587",
+              "query": "In transgenic mice harboring green florescent protein under the control of the Sox2 promoter, less than ten percent of the cells with green florescent colocalize with cell proliferation markers.",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 1,
+              "mpnet_first_relevant_rank": 77
+            },
+            {
+              "query_id": "659",
+              "query": "Ivermectin is used to treat lymphatic filariasis.",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 1,
+              "mpnet_first_relevant_rank": 98
+            },
+            {
+              "query_id": "660",
+              "query": "Ivermectin is used to treat onchocerciasis.",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 1,
+              "mpnet_first_relevant_rank": null
+            },
+            {
+              "query_id": "690",
+              "query": "Less than 10% of the gabonese children with Schimmelpenning-Feuerstein-Mims syndrome (SFM) had a plasma lactate of more than 5mmol/L.",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 1,
+              "mpnet_first_relevant_rank": 22
+            },
+            {
+              "query_id": "691",
+              "query": "Leukemia associated Rho guanine nucleotide-exchange factor represses RhoA in response to SRC activation.",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 1,
+              "mpnet_first_relevant_rank": 19
+            },
+            {
+              "query_id": "743",
+              "query": "Macrolides protect against myocardial infarction.",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 1,
+              "mpnet_first_relevant_rank": 35
+            }
+          ]
+        },
+        "mpnet_over_bm25": {
+          "max_margin": 1.0,
+          "queries_at_max_margin": 10,
+          "bm25_wins": 66,
+          "mpnet_wins": 67,
+          "examples": [
+            {
+              "query_id": "1088",
+              "query": "Silencing of Bcl2 is important for the maintenance and progression of tumors.",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": null,
+              "mpnet_first_relevant_rank": 1
+            },
+            {
+              "query_id": "1245",
+              "query": "The one-child policy has been successful in lowering population growth.",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 21,
+              "mpnet_first_relevant_rank": 1
+            },
+            {
+              "query_id": "1278",
+              "query": "The treatment of cancer patients with co-IR blockade does not cause any adverse autoimmune events.",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": null,
+              "mpnet_first_relevant_rank": 1
+            },
+            {
+              "query_id": "1279",
+              "query": "The treatment of cancer patients with co-IR blockade precipitates adverse autoimmune events.",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": null,
+              "mpnet_first_relevant_rank": 1
+            },
+            {
+              "query_id": "1368",
+              "query": "Vitamin D deficiency effects the term of delivery.",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 40,
+              "mpnet_first_relevant_rank": 1
+            },
+            {
+              "query_id": "183",
+              "query": "Bone marrow cells contribute to adult macrophage compartments.",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 11,
+              "mpnet_first_relevant_rank": 1
+            },
+            {
+              "query_id": "514",
+              "query": "High dietary calcium intakes are unnecessary for prevention of secondary hyperparathyroidism in subjects with 25(OH)D levels above 75 nmol/liter.",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 14,
+              "mpnet_first_relevant_rank": 1
+            },
+            {
+              "query_id": "628",
+              "query": "Infection of human T-cell lymphotropic virus type 1 is most frequent in individuals of African origin.",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 13,
+              "mpnet_first_relevant_rank": 1
+            },
+            {
+              "query_id": "72",
+              "query": "Activator-inhibitor pairs are provided dorsally by Admpchordin.",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 11,
+              "mpnet_first_relevant_rank": 1
+            },
+            {
+              "query_id": "800",
+              "query": "Modifying the epigenome in the brain affects the normal human aging process by affecting certain genes related to neurogenesis.",
+              "relevant_document_count": 1,
+              "ndcg_margin": 1.0,
+              "bm25_first_relevant_rank": 94,
+              "mpnet_first_relevant_rank": 1
+            }
+          ]
+        }
+      },
+      "breakdowns": {
+        "query_length_tertiles": {
+          "short": {
+            "query_count": 100,
+            "mean_ndcg_at_10": {
+              "BM25": 0.672214706815379,
+              "MiniLM": 0.6272748521510871,
+              "MPNet": 0.6385012494591364,
+              "TF-IDF": 0.6450147088033765
+            },
+            "word_count_range": [
+              4,
+              10
+            ]
+          },
+          "medium": {
+            "query_count": 100,
+            "mean_ndcg_at_10": {
+              "BM25": 0.6342876071318452,
+              "MiniLM": 0.6418099622023767,
+              "MPNet": 0.638077500146996,
+              "TF-IDF": 0.6080686924504769
+            },
+            "word_count_range": [
+              10,
+              14
+            ]
+          },
+          "long": {
+            "query_count": 100,
+            "mean_ndcg_at_10": {
+              "BM25": 0.6924006378365519,
+              "MiniLM": 0.6661601420832686,
+              "MPNet": 0.6905119998740998,
+              "TF-IDF": 0.6721889503577222
+            },
+            "word_count_range": [
+              14,
+              29
+            ]
+          }
+        },
+        "relevant_documents": {
+          "1": {
+            "query_count": 277,
+            "mean_ndcg_at_10": {
+              "BM25": 0.6761253603675378,
+              "MiniLM": 0.6508502613401136,
+              "MPNet": 0.6617994715024432,
+              "TF-IDF": 0.6545337381097033
+            }
+          }
+        },
+        "omitted_relevant_document_buckets": {
+          "2-3": 18,
+          "4+": 5
+        }
+      }
+    }
+  }
+}

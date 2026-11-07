@@ -2,7 +2,7 @@
   "method": "tfidf",
   "dataset": "fiqa",
   "model": null,
-  "generated_at": "2026-11-06T07:11:30.744630+00:00",
+  "generated_at": "2026-11-07T13:05:33.971752+00:00",
   "query_count": 648,
   "recall_at_1": 0.060157071152441524,
   "recall_at_5": 0.14343102028287213,
@@ -10,6 +10,6 @@
   "recall_at_100": 0.4671041835393687,
   "mrr_at_10": 0.18577184989222026,
   "ndcg_at_10": 0.14877652526344518,
-  "index_build_seconds": 10.962844599998789,
-  "average_query_latency_ms": 184.35480694479114
+  "index_build_seconds": 10.89128029999847,
+  "average_query_latency_ms": 153.71390802506036
 }

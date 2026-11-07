@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.export_results import export_results
+from scripts.export_results import export_per_query_results, export_results
 
 
 def report(**changes):
@@ -44,3 +44,13 @@ def test_exports_valid_report(tmp_path: Path) -> None:
     assert skipped == []
     assert summary["hardware_note"] == "test hardware"
     assert json.loads((output / "summary.json").read_text())["runs"] == [report()]
+
+
+def test_exports_valid_per_query_report(tmp_path: Path) -> None:
+    source, output = tmp_path / "results", tmp_path / "docs" / "results"
+    source.mkdir(parents=True)
+    per_query = {"method": "tfidf", "dataset": "fiqa", "model": None, "generated_at": "2026-01-01T00:00:00+00:00", "query_count": 1, "queries": [{"query_id": "q", "query": "test", "relevant_document_count": 1, "ndcg_at_10": .3, "mrr_at_10": .2, "recall_at_10": .3, "recall_at_100": .4, "first_relevant_rank": 2}]}
+    (source / "fiqa_tfidf_perquery.json").write_text(json.dumps(per_query))
+    exported, skipped = export_per_query_results(source, output)
+    assert [path.name for path in exported] == ["fiqa_tfidf_perquery.json"]
+    assert skipped == []
