@@ -40,15 +40,19 @@ CPU startup can take several minutes: Compose gives the API a three-minute healt
 
 Stop services with `docker compose down`. The model cache stays in `./data/huggingface-home`; remove that host folder separately only when a fresh model download is wanted.
 
-### Optional NVIDIA GPU
+### CPU by default, GPU optional
 
-CPU is the default and does not require a GPU. For an NVIDIA host with current NVIDIA drivers and Docker Desktop GPU support, use the optional override:
+Docker uses CPU by default because a CPU image works on any machine; anyone who clones the repo can start it without NVIDIA drivers. Docker is the portable setup. Local development and demos use the CUDA setup: a Python virtual environment with a CUDA build of PyTorch, the API run with `uvicorn`, and the UI with `npm run dev`. The UI header shows the active device (CUDA locally, CPU in the default Docker setup).
+
+The setups are independent: the container has its own CPU-only PyTorch and does not change the local virtual environment. Both use port 8000 for the API, so stop one before starting the other.
+
+To use the optional GPU override:
 
 ```powershell
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
 ```
 
-The override uses Compose GPU device reservations and changes the PyTorch wheel index to CUDA 12.8 (`https://download.pytorch.org/whl/cu128`). Change `TORCH_CUDA_INDEX_URL` in a local `.env` if a different CUDA wheel index matches the installed driver. This GPU configuration is not hardware-tested in this repository; CPU mode is expected to be slower.
+This requires NVIDIA drivers and Docker Desktop GPU support. The override uses CUDA PyTorch wheels and requires rebuilding the image; the configuration has been validated with `docker compose config` but not tested on GPU hardware. CPU mode is slower, especially for the MPNet model.
 
 | Problem | Check |
 | --- | --- |
