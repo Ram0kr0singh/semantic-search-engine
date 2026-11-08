@@ -1,6 +1,6 @@
 # Per-query statistical analysis
 
-All values are calculated from the committed per-query snapshots. P-values use a two-sided centered paired bootstrap with add-one correction: resample differences centered at their observed mean; p = (count_extreme + 1) / (resamples + 1), where count_extreme is the number of null bootstrap means with absolute value at least the observed absolute mean. Confidence intervals can differ slightly in the third decimal from the preceding report because each paired bootstrap now uses a stable comparison-specific seed.
+All values are calculated from the committed per-query snapshots. P-values use a two-sided centered paired bootstrap with add-one correction: resample differences centered at their observed mean; p = (count_extreme + 1) / (resamples + 1), where count_extreme is the number of null bootstrap means with absolute value at least the observed absolute mean. Each bootstrap comparison is seeded from a stable hash of the global seed, dataset, metric, method A, and method B; this made confidence intervals of earlier comparisons shift slightly in the third decimal once.
 
 ## fiqa
 
@@ -58,6 +58,30 @@ This separate family compares the pre-specified development-selected weighted hy
 | Hybrid-tuned (MPNet) − MPNet | 0.000000 | [0.000000, 0.000000] | 1.000000 | 1.000000 | 0 | 0 | 648 |
 | Hybrid-tuned (MPNet) − BM25 | 0.306506 | [0.274434, 0.338052] | < 0.0001 | 0.001200 | 335 | 16 | 297 |
 
+### Reranking comparisons (separate Holm family)
+
+This separate family is the pre-specified cross-encoder reranking comparison. Recall@100 is excluded because reranking only reorders the same 100 first-stage candidates.
+
+#### ndcg_at_10
+
+| Comparison (A − B) | Mean difference | 95% CI | p-value | Holm p-value | A wins | B wins | Ties |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| Rerank (BM25) − BM25 | 0.109839 | [0.091829, 0.127878] | < 0.0001 | 0.001000 | 256 | 70 | 322 |
+| Rerank (MPNet) − MPNet | -0.095509 | [-0.118185, -0.073172] | < 0.0001 | 0.001000 | 133 | 304 | 211 |
+| Rerank (Hybrid MPNet) − Hybrid (MPNet) | -0.017848 | [-0.037829, 0.002543] | 0.084892 | 0.339566 | 175 | 228 | 245 |
+| Rerank (MPNet) − Rerank (BM25) | 0.071979 | [0.057552, 0.087011] | < 0.0001 | 0.001000 | 212 | 46 | 390 |
+| Rerank (Hybrid MPNet) − Rerank (MPNet) | -0.022877 | [-0.030006, -0.015679] | < 0.0001 | 0.001000 | 24 | 157 | 467 |
+
+#### recall_at_10
+
+| Comparison (A − B) | Mean difference | 95% CI | p-value | Holm p-value | A wins | B wins | Ties |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| Rerank (BM25) − BM25 | 0.111487 | [0.090040, 0.133612] | < 0.0001 | 0.001000 | 169 | 26 | 453 |
+| Rerank (MPNet) − MPNet | -0.095664 | [-0.120547, -0.070888] | < 0.0001 | 0.001000 | 60 | 184 | 404 |
+| Rerank (Hybrid MPNet) − Hybrid (MPNet) | -0.026555 | [-0.051950, -0.001607] | 0.037896 | 0.227377 | 90 | 128 | 430 |
+| Rerank (MPNet) − Rerank (BM25) | 0.092224 | [0.071997, 0.112834] | < 0.0001 | 0.001000 | 143 | 19 | 486 |
+| Rerank (Hybrid MPNet) − Rerank (MPNet) | -0.023830 | [-0.035024, -0.012996] | 0.000300 | 0.002100 | 9 | 57 | 582 |
+
 ### Development-selected weights
 
 The following weights were selected on the stated development split by the pre-specified highest-mean-nDCG@10 rule; the test comparisons above describe the resulting test evaluation and do not establish causation.
@@ -107,23 +131,56 @@ The examples are illustrative, not a random sample. For each direction, the 10 e
 | mpnet_over_bm25 | 2076 | Can vet / veterinary bills be considered deductions (tax-deductible) for Income Tax purposes [Canada]? | 2 | 1.000000 | not in top 100 | 1 |
 | mpnet_over_bm25 | 2388 | Do financial advisors get better deals on mortgages? | 1 | 1.000000 | 16 | 1 |
 
+### Error analysis: Rerank (MPNet) vs MPNet
+
+These examples are descriptive, not causal: one hypothesis is that cross-encoder relevance scores reorder already retrieved candidates differently from the dense first stage.
+
+| Outcome | Queries |
+| --- | ---: |
+| Improved | 133 |
+| Unchanged | 211 |
+| Degraded | 304 |
+
+| Direction | Query ID | Query | Relevant docs | nDCG@10 margin | MPNet first relevant rank | Rerank first relevant rank |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| improves most | 10601 | Bitcoin Cost Basis Purchases | 1 | 1.000000 | 61 | 1 |
+| improves most | 4775 | Should I finance a car to build credit for a mortgage next year? | 1 | 1.000000 | 28 | 1 |
+| improves most | 5155 | For insurance, why should you refuse $4,000/year for only 10 years and prefer $500/year indefinitely? | 1 | 1.000000 | 24 | 1 |
+| improves most | 549 | Where to request ACH Direct DEBIT of funds from MY OWN personal bank account? | 1 | 1.000000 | 44 | 1 |
+| improves most | 3039 | Can increasing my tax withholding from my full-time job cover FICA taxes for my freelance work? | 1 | 0.666667 | 7 | 1 |
+| improves most | 3837 | Opening a Roth IRA account, what is the fee structure for Vanguard, Scottrade and TIAA-CREF | 1 | 0.643793 | 6 | 1 |
+| improves most | 5331 | Exercises of employee share options | 1 | 0.630930 | 14 | 2 |
+| improves most | 8017 | Purchasing ETFs when (pretty much) everything else is maxed out | 1 | 0.630930 | 13 | 2 |
+| improves most | 8874 | When can you adjust for (and re-allow) a disallowed year-end (December) wash-sale loss? | 1 | 0.630930 | 26 | 2 |
+| improves most | 8592 | Tax implications of exercising ISOs and using proceeds to exercise more ISOs | 3 | 0.617320 | 13 | 1 |
+| hurts most | 106 | What approaches are there for pricing a small business? | 1 | 1.000000 | 1 | 13 |
+| hurts most | 10628 | What happens with the “long” buyer of a stock when somebody else's short fails (that is, unlimited loss bankrupts short seller) | 1 | 1.000000 | 1 | 28 |
+| hurts most | 1230 | How does Walmart account their expired food | 1 | 1.000000 | 1 | 29 |
+| hurts most | 1824 | Is there a way to open a U.S. bank account for my LLC remotely? | 1 | 1.000000 | 1 | 19 |
+| hurts most | 5427 | How do auto-loan payments factor into taxes for cars that are solely used by dependent(s)? | 2 | 1.000000 | 1 | 31 |
+| hurts most | 8512 | Is it possible to transfer stock I already own into my Roth IRA without having to sell the stock? | 1 | 1.000000 | 1 | 13 |
+| hurts most | 853 | What will my taxes be as self employed? | 2 | 1.000000 | 1 | 30 |
+| hurts most | 945 | Paid by an American company but working from France: where should I pay taxes? | 1 | 1.000000 | 1 | 37 |
+| hurts most | 3394 | What is the easiest way to back-test index funds and ETFs? | 4 | 0.831872 | 1 | 33 |
+| hurts most | 6959 | What is the term for the quantity (high price minus low price) for a stock? | 2 | 0.790386 | 1 | 17 |
+
 ### nDCG@10 breakdowns
 
 #### query_length_tertiles
 
-| Bucket | Queries | BM25 | Hybrid-tuned (MiniLM) | Hybrid-tuned (MPNet) | Hybrid (MiniLM) | Hybrid (MPNet) | MiniLM | MPNet | TF-IDF |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| short (2–9 words) | 216 | 0.192008 | 0.329666 | 0.431259 | 0.293089 | 0.361768 | 0.318480 | 0.431259 | 0.117880 |
-| medium (9–13 words) | 216 | 0.260363 | 0.404879 | 0.537693 | 0.352725 | 0.432804 | 0.400591 | 0.537693 | 0.189110 |
-| long (13–31 words) | 216 | 0.214546 | 0.389739 | 0.529945 | 0.350374 | 0.402712 | 0.386943 | 0.529945 | 0.139339 |
+| Bucket | Queries | BM25 | Hybrid-tuned (MiniLM) | Hybrid-tuned (MPNet) | Hybrid (MiniLM) | Hybrid (MPNet) | Rerank (BM25) | Rerank (Hybrid MPNet) | Rerank (MPNet) | MiniLM | MPNet | TF-IDF |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| short (2–9 words) | 216 | 0.192008 | 0.329666 | 0.431259 | 0.293089 | 0.361768 | 0.293825 | 0.341261 | 0.361323 | 0.318480 | 0.431259 | 0.117880 |
+| medium (9–13 words) | 216 | 0.260363 | 0.404879 | 0.537693 | 0.352725 | 0.432804 | 0.374290 | 0.427400 | 0.446625 | 0.400591 | 0.537693 | 0.189110 |
+| long (13–31 words) | 216 | 0.214546 | 0.389739 | 0.529945 | 0.350374 | 0.402712 | 0.328317 | 0.375079 | 0.404423 | 0.386943 | 0.529945 | 0.139339 |
 
 #### relevant_documents
 
-| Bucket | Queries | BM25 | Hybrid-tuned (MiniLM) | Hybrid-tuned (MPNet) | Hybrid (MiniLM) | Hybrid (MPNet) | MiniLM | MPNet | TF-IDF |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | 220 | 0.233324 | 0.392787 | 0.479645 | 0.343069 | 0.400406 | 0.388237 | 0.479645 | 0.142355 |
-| 2-3 | 287 | 0.225975 | 0.356625 | 0.516838 | 0.326845 | 0.407379 | 0.345864 | 0.516838 | 0.151335 |
-| 4+ | 141 | 0.197646 | 0.383554 | 0.495798 | 0.325509 | 0.380187 | 0.384567 | 0.495798 | 0.153587 |
+| Bucket | Queries | BM25 | Hybrid-tuned (MiniLM) | Hybrid-tuned (MPNet) | Hybrid (MiniLM) | Hybrid (MPNet) | Rerank (BM25) | Rerank (Hybrid MPNet) | Rerank (MPNet) | MiniLM | MPNet | TF-IDF |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 220 | 0.233324 | 0.392787 | 0.479645 | 0.343069 | 0.400406 | 0.353418 | 0.405004 | 0.425768 | 0.388237 | 0.479645 | 0.142355 |
+| 2-3 | 287 | 0.225975 | 0.356625 | 0.516838 | 0.326845 | 0.407379 | 0.323458 | 0.366168 | 0.384736 | 0.345864 | 0.516838 | 0.151335 |
+| 4+ | 141 | 0.197646 | 0.383554 | 0.495798 | 0.325509 | 0.380187 | 0.316631 | 0.374869 | 0.409812 | 0.384567 | 0.495798 | 0.153587 |
 
 Differences whose Holm-adjusted p-value is not below 0.05 are not statistically distinguishable at this bootstrap resolution. Relevant-document buckets with fewer than 20 queries are omitted: none.
 
@@ -183,6 +240,30 @@ This separate family compares the pre-specified development-selected weighted hy
 | Hybrid-tuned (MPNet) − MPNet | 0.011667 | [-0.018333, 0.041667] | 0.452355 | 1.000000 | 13 | 9 | 278 |
 | Hybrid-tuned (MPNet) − BM25 | 0.074111 | [0.046778, 0.104000] | < 0.0001 | 0.001200 | 26 | 0 | 274 |
 
+### Reranking comparisons (separate Holm family)
+
+This separate family is the pre-specified cross-encoder reranking comparison. Recall@100 is excluded because reranking only reorders the same 100 first-stage candidates.
+
+#### ndcg_at_10
+
+| Comparison (A − B) | Mean difference | 95% CI | p-value | Holm p-value | A wins | B wins | Ties |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| Rerank (BM25) − BM25 | 0.013398 | [-0.016955, 0.044121] | 0.390061 | 1.000000 | 53 | 53 | 194 |
+| Rerank (MPNet) − MPNet | 0.039075 | [0.004691, 0.074653] | 0.030997 | 0.185981 | 73 | 56 | 171 |
+| Rerank (Hybrid MPNet) − Hybrid (MPNet) | 0.005158 | [-0.023792, 0.034031] | 0.730527 | 1.000000 | 59 | 60 | 181 |
+| Rerank (MPNet) − Rerank (BM25) | 0.015074 | [0.000204, 0.031162] | 0.055194 | 0.275972 | 24 | 12 | 264 |
+| Rerank (Hybrid MPNet) − Rerank (MPNet) | -0.003476 | [-0.012395, 0.005554] | 0.438756 | 1.000000 | 7 | 18 | 275 |
+
+#### recall_at_10
+
+| Comparison (A − B) | Mean difference | 95% CI | p-value | Holm p-value | A wins | B wins | Ties |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| Rerank (BM25) − BM25 | 0.018000 | [-0.017226, 0.053779] | 0.317568 | 1.000000 | 23 | 15 | 262 |
+| Rerank (MPNet) − MPNet | 0.023778 | [-0.018225, 0.064778] | 0.261174 | 1.000000 | 26 | 20 | 254 |
+| Rerank (Hybrid MPNet) − Hybrid (MPNet) | -0.001500 | [-0.040278, 0.036112] | 0.940006 | 1.000000 | 19 | 20 | 261 |
+| Rerank (MPNet) − Rerank (BM25) | 0.017778 | [-0.012222, 0.047778] | 0.242976 | 1.000000 | 14 | 8 | 278 |
+| Rerank (Hybrid MPNet) − Rerank (MPNet) | 0.005000 | [-0.015000, 0.025000] | 0.613039 | 1.000000 | 6 | 4 | 290 |
+
 ### Development-selected weights
 
 The following weights were selected on the stated development split by the pre-specified highest-mean-nDCG@10 rule; the test comparisons above describe the resulting test evaluation and do not establish causation.
@@ -232,21 +313,54 @@ The examples are illustrative, not a random sample. For each direction, the 10 e
 | mpnet_over_bm25 | 72 | Activator-inhibitor pairs are provided dorsally by Admpchordin. | 1 | 1.000000 | 11 | 1 |
 | mpnet_over_bm25 | 800 | Modifying the epigenome in the brain affects the normal human aging process by affecting certain genes related to neurogenesis. | 1 | 1.000000 | 94 | 1 |
 
+### Error analysis: Rerank (MPNet) vs MPNet
+
+These examples are descriptive, not causal: one hypothesis is that cross-encoder relevance scores reorder already retrieved candidates differently from the dense first stage.
+
+| Outcome | Queries |
+| --- | ---: |
+| Improved | 73 |
+| Unchanged | 171 |
+| Degraded | 56 |
+
+| Direction | Query ID | Query | Relevant docs | nDCG@10 margin | MPNet first relevant rank | Rerank first relevant rank |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| improves most | 1024 | Recurrent mutations occur frequently within CTCF anchor sites adjacent to oncogenes. | 1 | 1.000000 | 64 | 1 |
+| improves most | 1385 | cSMAC formation enhances weak ligand signalling. | 1 | 1.000000 | 34 | 1 |
+| improves most | 1395 | p16INK4A accumulation is  linked to an abnormal wound response caused by the microinvasive step of advanced Oral Potentially Malignant Lesions (OPMLs). | 1 | 1.000000 | 13 | 1 |
+| improves most | 269 | Cold exposure reduces BAT recruitment. | 1 | 1.000000 | 12 | 1 |
+| improves most | 294 | Crossover hot spots are not found within gene promoters in Saccharomyces cerevisiae. | 1 | 1.000000 | 38 | 1 |
+| improves most | 690 | Less than 10% of the gabonese children with Schimmelpenning-Feuerstein-Mims syndrome (SFM) had a plasma lactate of more than 5mmol/L. | 1 | 1.000000 | 22 | 1 |
+| improves most | 743 | Macrolides protect against myocardial infarction. | 1 | 1.000000 | 35 | 1 |
+| improves most | 845 | Neutrophil extracellular traps (NETs) are released by ANCA-stimulated neutrophils. | 1 | 0.710935 | 10 | 1 |
+| improves most | 268 | Cold exposure increases BAT recruitment. | 1 | 0.684535 | 8 | 1 |
+| improves most | 793 | Mitochondria are uninvolved in apoptosis. | 1 | 0.684535 | 8 | 1 |
+| hurts most | 1245 | The one-child policy has been successful in lowering population growth. | 1 | 1.000000 | 1 | 15 |
+| hurts most | 1278 | The treatment of cancer patients with co-IR blockade does not cause any adverse autoimmune events. | 1 | 1.000000 | 1 | 13 |
+| hurts most | 1279 | The treatment of cancer patients with co-IR blockade precipitates adverse autoimmune events. | 1 | 1.000000 | 1 | 14 |
+| hurts most | 70 | Activation of PPM1D suppresses p53 function. | 2 | 1.000000 | 1 | 22 |
+| hurts most | 54 | AMP-activated protein kinase (AMPK) activation increases inflammation-related fibrosis in the lungs. | 1 | 0.698970 | 1 | 9 |
+| hurts most | 1204 | The combination of H3K4me3 and H3K79me2 is found in quiescent hair follicle stem cells. | 1 | 0.643793 | 1 | 6 |
+| hurts most | 238 | Cells undergoing methionine restriction may activate miRNAs. | 1 | 0.630930 | 2 | 27 |
+| hurts most | 237 | Cells lacking clpC have a defect in sporulation efficiency in Bacillus subtilis. | 1 | 0.569323 | 1 | 4 |
+| hurts most | 684 | Lack of clpC does not affect sporulation efficiency in Bacillus subtilis cells. | 1 | 0.569323 | 1 | 4 |
+| hurts most | 1191 | The amount of publicly available DNA data doubles every 10 years. | 1 | 0.500000 | 3 | 15 |
+
 ### nDCG@10 breakdowns
 
 #### query_length_tertiles
 
-| Bucket | Queries | BM25 | Hybrid-tuned (MiniLM) | Hybrid-tuned (MPNet) | Hybrid (MiniLM) | Hybrid (MPNet) | MiniLM | MPNet | TF-IDF |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| short (4–10 words) | 100 | 0.672215 | 0.717562 | 0.698677 | 0.708550 | 0.682710 | 0.627275 | 0.638501 | 0.645015 |
-| medium (10–14 words) | 100 | 0.634288 | 0.655359 | 0.650305 | 0.643794 | 0.653034 | 0.641810 | 0.638078 | 0.608069 |
-| long (14–29 words) | 100 | 0.692401 | 0.713754 | 0.723782 | 0.702574 | 0.722672 | 0.666160 | 0.690512 | 0.672189 |
+| Bucket | Queries | BM25 | Hybrid-tuned (MiniLM) | Hybrid-tuned (MPNet) | Hybrid (MiniLM) | Hybrid (MPNet) | Rerank (BM25) | Rerank (Hybrid MPNet) | Rerank (MPNet) | MiniLM | MPNet | TF-IDF |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| short (4–10 words) | 100 | 0.672215 | 0.717562 | 0.698677 | 0.708550 | 0.682710 | 0.677871 | 0.684169 | 0.695758 | 0.627275 | 0.638501 | 0.645015 |
+| medium (10–14 words) | 100 | 0.634288 | 0.655359 | 0.650305 | 0.643794 | 0.653034 | 0.652950 | 0.680309 | 0.672725 | 0.641810 | 0.638078 | 0.608069 |
+| long (14–29 words) | 100 | 0.692401 | 0.713754 | 0.723782 | 0.702574 | 0.722672 | 0.708275 | 0.709411 | 0.715834 | 0.666160 | 0.690512 | 0.672189 |
 
 #### relevant_documents
 
-| Bucket | Queries | BM25 | Hybrid-tuned (MiniLM) | Hybrid-tuned (MPNet) | Hybrid (MiniLM) | Hybrid (MPNet) | MiniLM | MPNet | TF-IDF |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | 277 | 0.676125 | 0.699028 | 0.695540 | 0.688224 | 0.690153 | 0.650850 | 0.661799 | 0.654534 |
+| Bucket | Queries | BM25 | Hybrid-tuned (MiniLM) | Hybrid-tuned (MPNet) | Hybrid (MiniLM) | Hybrid (MPNet) | Rerank (BM25) | Rerank (Hybrid MPNet) | Rerank (MPNet) | MiniLM | MPNet | TF-IDF |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 277 | 0.676125 | 0.699028 | 0.695540 | 0.688224 | 0.690153 | 0.686066 | 0.697235 | 0.701945 | 0.650850 | 0.661799 | 0.654534 |
 
 Differences whose Holm-adjusted p-value is not below 0.05 are not statistically distinguishable at this bootstrap resolution. Relevant-document buckets with fewer than 20 queries are omitted: 2-3 (18 queries), 4+ (5 queries).
 For SciFact, this leaves a single relevant-document bucket.

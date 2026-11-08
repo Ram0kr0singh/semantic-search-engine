@@ -385,6 +385,142 @@
           }
         ]
       },
+      "rerank_comparisons": {
+        "ndcg_at_10": [
+          {
+            "method_a": "Rerank (BM25)",
+            "method_b": "BM25",
+            "metric": "ndcg_at_10",
+            "mean_difference": 0.10983866981189029,
+            "ci_low": 0.09182900957500956,
+            "ci_high": 0.12787821500049554,
+            "p_value": 9.999000099990002e-05,
+            "wins": 256,
+            "losses": 70,
+            "ties": 322,
+            "holm_adjusted_p_value": 0.000999900009999
+          },
+          {
+            "method_a": "Rerank (MPNet)",
+            "method_b": "MPNet",
+            "metric": "ndcg_at_10",
+            "mean_difference": -0.09550928505942004,
+            "ci_low": -0.1181849821466891,
+            "ci_high": -0.07317199666061652,
+            "p_value": 9.999000099990002e-05,
+            "wins": 133,
+            "losses": 304,
+            "ties": 211,
+            "holm_adjusted_p_value": 0.000999900009999
+          },
+          {
+            "method_a": "Rerank (Hybrid MPNet)",
+            "method_b": "Hybrid (MPNet)",
+            "metric": "ndcg_at_10",
+            "mean_difference": -0.017848280666988264,
+            "ci_low": -0.037828807161071704,
+            "ci_high": 0.00254256819532476,
+            "p_value": 0.08489151084891511,
+            "wins": 175,
+            "losses": 228,
+            "ties": 245,
+            "holm_adjusted_p_value": 0.33956604339566043
+          },
+          {
+            "method_a": "Rerank (MPNet)",
+            "method_b": "Rerank (BM25)",
+            "metric": "ndcg_at_10",
+            "mean_difference": 0.07197893124187886,
+            "ci_low": 0.057551575239949096,
+            "ci_high": 0.08701127840999473,
+            "p_value": 9.999000099990002e-05,
+            "wins": 212,
+            "losses": 46,
+            "ties": 390,
+            "holm_adjusted_p_value": 0.000999900009999
+          },
+          {
+            "method_a": "Rerank (Hybrid MPNet)",
+            "method_b": "Rerank (MPNet)",
+            "metric": "ndcg_at_10",
+            "mean_difference": -0.02287670937521176,
+            "ci_low": -0.03000565376466061,
+            "ci_high": -0.015679051896656426,
+            "p_value": 9.999000099990002e-05,
+            "wins": 24,
+            "losses": 157,
+            "ties": 467,
+            "holm_adjusted_p_value": 0.000999900009999
+          }
+        ],
+        "recall_at_10": [
+          {
+            "method_a": "Rerank (BM25)",
+            "method_b": "BM25",
+            "metric": "recall_at_10",
+            "mean_difference": 0.11148718822329934,
+            "ci_low": 0.09003990468978895,
+            "ci_high": 0.13361150070351457,
+            "p_value": 9.999000099990002e-05,
+            "wins": 169,
+            "losses": 26,
+            "ties": 453,
+            "holm_adjusted_p_value": 0.000999900009999
+          },
+          {
+            "method_a": "Rerank (MPNet)",
+            "method_b": "MPNet",
+            "metric": "recall_at_10",
+            "mean_difference": -0.09566425943740758,
+            "ci_low": -0.12054663143783513,
+            "ci_high": -0.07088811672723712,
+            "p_value": 9.999000099990002e-05,
+            "wins": 60,
+            "losses": 184,
+            "ties": 404,
+            "holm_adjusted_p_value": 0.000999900009999
+          },
+          {
+            "method_a": "Rerank (Hybrid MPNet)",
+            "method_b": "Hybrid (MPNet)",
+            "metric": "recall_at_10",
+            "mean_difference": -0.026555363360918918,
+            "ci_low": -0.05194964736052699,
+            "ci_high": -0.0016065764011365914,
+            "p_value": 0.037896210378962104,
+            "wins": 90,
+            "losses": 128,
+            "ties": 430,
+            "holm_adjusted_p_value": 0.22737726227377264
+          },
+          {
+            "method_a": "Rerank (MPNet)",
+            "method_b": "Rerank (BM25)",
+            "metric": "recall_at_10",
+            "mean_difference": 0.09222393689986282,
+            "ci_low": 0.07199657370664315,
+            "ci_high": 0.11283410187634724,
+            "p_value": 9.999000099990002e-05,
+            "wins": 143,
+            "losses": 19,
+            "ties": 486,
+            "holm_adjusted_p_value": 0.000999900009999
+          },
+          {
+            "method_a": "Rerank (Hybrid MPNet)",
+            "method_b": "Rerank (MPNet)",
+            "metric": "recall_at_10",
+            "mean_difference": -0.023829732510288065,
+            "ci_low": -0.0350235615079365,
+            "ci_high": -0.012996031746031745,
+            "p_value": 0.00029997000299970003,
+            "wins": 9,
+            "losses": 57,
+            "ties": 582,
+            "holm_adjusted_p_value": 0.0020997900209979003
+          }
+        ]
+      },
       "error_analysis": {
         "bm25_over_mpnet": {
           "max_margin": 1.0,
@@ -573,6 +709,9 @@
               "Hybrid-tuned (MPNet)": 0.4312592339636832,
               "Hybrid (MiniLM)": 0.29308874062917767,
               "Hybrid (MPNet)": 0.3617683207598336,
+              "Rerank (BM25)": 0.2938253247291125,
+              "Rerank (Hybrid MPNet)": 0.34126103815097103,
+              "Rerank (MPNet)": 0.3613226105925893,
               "MiniLM": 0.3184798054900835,
               "MPNet": 0.4312592339636832,
               "TF-IDF": 0.11787999171046463
@@ -590,6 +729,9 @@
               "Hybrid-tuned (MPNet)": 0.537693259166422,
               "Hybrid (MiniLM)": 0.35272468525818873,
               "Hybrid (MPNet)": 0.432804333453869,
+              "Rerank (BM25)": 0.37429047982978597,
+              "Rerank (Hybrid MPNet)": 0.42740000740644774,
+              "Rerank (MPNet)": 0.44662456875492573,
               "MiniLM": 0.4005912132885841,
               "MPNet": 0.537693259166422,
               "TF-IDF": 0.18911011032311312
@@ -607,6 +749,9 @@
               "Hybrid-tuned (MPNet)": 0.5299451300613397,
               "Hybrid (MiniLM)": 0.3503736594689961,
               "Hybrid (MPNet)": 0.4027118276748118,
+              "Rerank (BM25)": 0.3283171697286499,
+              "Rerank (Hybrid MPNet)": 0.3750785943301309,
+              "Rerank (MPNet)": 0.40442258866566977,
               "MiniLM": 0.38694309074347977,
               "MPNet": 0.5299451300613397,
               "TF-IDF": 0.13933947375675781
@@ -626,6 +771,9 @@
               "Hybrid-tuned (MPNet)": 0.4796454500172677,
               "Hybrid (MiniLM)": 0.34306901801956874,
               "Hybrid (MPNet)": 0.4004059622897418,
+              "Rerank (BM25)": 0.3534184016504068,
+              "Rerank (Hybrid MPNet)": 0.4050043419423482,
+              "Rerank (MPNet)": 0.4257684587323074,
               "MiniLM": 0.38823682363737844,
               "MPNet": 0.4796454500172677,
               "TF-IDF": 0.1423551147996287
@@ -639,6 +787,9 @@
               "Hybrid-tuned (MPNet)": 0.5168375797954932,
               "Hybrid (MiniLM)": 0.32684468591503396,
               "Hybrid (MPNet)": 0.4073789732513139,
+              "Rerank (BM25)": 0.3234581486540484,
+              "Rerank (Hybrid MPNet)": 0.3661679856099866,
+              "Rerank (MPNet)": 0.3847364642966587,
               "MiniLM": 0.34586397537043,
               "MPNet": 0.5168375797954932,
               "TF-IDF": 0.15133541993320135
@@ -652,6 +803,9 @@
               "Hybrid-tuned (MPNet)": 0.4957978879733808,
               "Hybrid (MiniLM)": 0.3255092313124431,
               "Hybrid (MPNet)": 0.38018702880176475,
+              "Rerank (BM25)": 0.3166311022646031,
+              "Rerank (Hybrid MPNet)": 0.3748694689243118,
+              "Rerank (MPNet)": 0.4098116575645336,
               "MiniLM": 0.3845672732287032,
               "MPNet": 0.4957978879733808,
               "TF-IDF": 0.15358721697847783
@@ -659,6 +813,175 @@
           }
         },
         "omitted_relevant_document_buckets": {}
+      },
+      "rerank_mpnet_error_analysis": {
+        "improved": 133,
+        "unchanged": 211,
+        "degraded": 304,
+        "improves_most": [
+          {
+            "query_id": "10601",
+            "query": "Bitcoin Cost Basis Purchases",
+            "relevant_document_count": 1,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 61,
+            "rerank_first_relevant_rank": 1
+          },
+          {
+            "query_id": "4775",
+            "query": "Should I finance a car to build credit for a mortgage next year?",
+            "relevant_document_count": 1,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 28,
+            "rerank_first_relevant_rank": 1
+          },
+          {
+            "query_id": "5155",
+            "query": "For insurance, why should you refuse $4,000/year for only 10 years and prefer $500/year indefinitely?",
+            "relevant_document_count": 1,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 24,
+            "rerank_first_relevant_rank": 1
+          },
+          {
+            "query_id": "549",
+            "query": "Where to request ACH Direct DEBIT of funds from MY OWN personal bank account?",
+            "relevant_document_count": 1,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 44,
+            "rerank_first_relevant_rank": 1
+          },
+          {
+            "query_id": "3039",
+            "query": "Can increasing my tax withholding from my full-time job cover FICA taxes for my freelance work?",
+            "relevant_document_count": 1,
+            "ndcg_margin": 0.6666666666666667,
+            "mpnet_first_relevant_rank": 7,
+            "rerank_first_relevant_rank": 1
+          },
+          {
+            "query_id": "3837",
+            "query": "Opening a Roth IRA account, what is the fee structure for Vanguard, Scottrade and TIAA-CREF",
+            "relevant_document_count": 1,
+            "ndcg_margin": 0.6437928128919779,
+            "mpnet_first_relevant_rank": 6,
+            "rerank_first_relevant_rank": 1
+          },
+          {
+            "query_id": "5331",
+            "query": "Exercises of employee share options",
+            "relevant_document_count": 1,
+            "ndcg_margin": 0.6309297535714575,
+            "mpnet_first_relevant_rank": 14,
+            "rerank_first_relevant_rank": 2
+          },
+          {
+            "query_id": "8017",
+            "query": "Purchasing ETFs when (pretty much) everything else is maxed out",
+            "relevant_document_count": 1,
+            "ndcg_margin": 0.6309297535714575,
+            "mpnet_first_relevant_rank": 13,
+            "rerank_first_relevant_rank": 2
+          },
+          {
+            "query_id": "8874",
+            "query": "When can you adjust for (and re-allow) a disallowed year-end (December) wash-sale loss?",
+            "relevant_document_count": 1,
+            "ndcg_margin": 0.6309297535714575,
+            "mpnet_first_relevant_rank": 26,
+            "rerank_first_relevant_rank": 2
+          },
+          {
+            "query_id": "8592",
+            "query": "Tax implications of exercising ISOs and using proceeds to exercise more ISOs",
+            "relevant_document_count": 3,
+            "ndcg_margin": 0.617319681505689,
+            "mpnet_first_relevant_rank": 13,
+            "rerank_first_relevant_rank": 1
+          }
+        ],
+        "hurts_most": [
+          {
+            "query_id": "106",
+            "query": "What approaches are there for pricing a small business?",
+            "relevant_document_count": 1,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 1,
+            "rerank_first_relevant_rank": 13
+          },
+          {
+            "query_id": "10628",
+            "query": "What happens with the \u201clong\u201d buyer of a stock when somebody else's short fails (that is, unlimited loss bankrupts short seller)",
+            "relevant_document_count": 1,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 1,
+            "rerank_first_relevant_rank": 28
+          },
+          {
+            "query_id": "1230",
+            "query": "How does Walmart account their expired food",
+            "relevant_document_count": 1,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 1,
+            "rerank_first_relevant_rank": 29
+          },
+          {
+            "query_id": "1824",
+            "query": "Is there a way to open a U.S. bank account for my LLC remotely?",
+            "relevant_document_count": 1,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 1,
+            "rerank_first_relevant_rank": 19
+          },
+          {
+            "query_id": "5427",
+            "query": "How do auto-loan payments factor into taxes for cars that are solely used by dependent(s)?",
+            "relevant_document_count": 2,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 1,
+            "rerank_first_relevant_rank": 31
+          },
+          {
+            "query_id": "8512",
+            "query": "Is it possible to transfer stock I already own into my Roth IRA without having to sell the stock?",
+            "relevant_document_count": 1,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 1,
+            "rerank_first_relevant_rank": 13
+          },
+          {
+            "query_id": "853",
+            "query": "What will my taxes be as self employed?",
+            "relevant_document_count": 2,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 1,
+            "rerank_first_relevant_rank": 30
+          },
+          {
+            "query_id": "945",
+            "query": "Paid by an American company but working from France: where should I pay taxes?",
+            "relevant_document_count": 1,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 1,
+            "rerank_first_relevant_rank": 37
+          },
+          {
+            "query_id": "3394",
+            "query": "What is the easiest way to back-test index funds and ETFs?",
+            "relevant_document_count": 4,
+            "ndcg_margin": 0.8318724637288826,
+            "mpnet_first_relevant_rank": 1,
+            "rerank_first_relevant_rank": 33
+          },
+          {
+            "query_id": "6959",
+            "query": "What is the term for the quantity (high price minus low price) for a stock?",
+            "relevant_document_count": 2,
+            "ndcg_margin": 0.7903864795495061,
+            "mpnet_first_relevant_rank": 1,
+            "rerank_first_relevant_rank": 17
+          }
+        ]
       },
       "hybrid_mpnet_vs_components": {
         "beats_both": 115,
@@ -1044,6 +1367,142 @@
           }
         ]
       },
+      "rerank_comparisons": {
+        "ndcg_at_10": [
+          {
+            "method_a": "Rerank (BM25)",
+            "method_b": "BM25",
+            "metric": "ndcg_at_10",
+            "mean_difference": 0.013397827172671425,
+            "ci_low": -0.016955092881992078,
+            "ci_high": 0.04412060166644468,
+            "p_value": 0.39006099390060994,
+            "wins": 53,
+            "losses": 53,
+            "ties": 194,
+            "holm_adjusted_p_value": 1.0
+          },
+          {
+            "method_a": "Rerank (MPNet)",
+            "method_b": "MPNet",
+            "metric": "ndcg_at_10",
+            "mean_difference": 0.03907539997593537,
+            "ci_low": 0.004691115822708653,
+            "ci_high": 0.07465289779721275,
+            "p_value": 0.030996900309969003,
+            "wins": 73,
+            "losses": 56,
+            "ties": 171,
+            "holm_adjusted_p_value": 0.18598140185981402
+          },
+          {
+            "method_a": "Rerank (Hybrid MPNet)",
+            "method_b": "Hybrid (MPNet)",
+            "metric": "ndcg_at_10",
+            "mean_difference": 0.005157757189486916,
+            "ci_low": -0.023791623124348057,
+            "ci_high": 0.03403116555605192,
+            "p_value": 0.7305269473052695,
+            "wins": 59,
+            "losses": 60,
+            "ties": 181,
+            "holm_adjusted_p_value": 1.0
+          },
+          {
+            "method_a": "Rerank (MPNet)",
+            "method_b": "Rerank (BM25)",
+            "metric": "ndcg_at_10",
+            "mean_difference": 0.015073505368749395,
+            "ci_low": 0.00020402927543186543,
+            "ci_high": 0.031161988282944725,
+            "p_value": 0.055194480551944806,
+            "wins": 24,
+            "losses": 12,
+            "ties": 264,
+            "holm_adjusted_p_value": 0.275972402759724
+          },
+          {
+            "method_a": "Rerank (Hybrid MPNet)",
+            "method_b": "Rerank (MPNet)",
+            "metric": "ndcg_at_10",
+            "mean_difference": -0.003476026880317855,
+            "ci_low": -0.012395414567798505,
+            "ci_high": 0.00555393607887257,
+            "p_value": 0.43875612438756123,
+            "wins": 7,
+            "losses": 18,
+            "ties": 275,
+            "holm_adjusted_p_value": 1.0
+          }
+        ],
+        "recall_at_10": [
+          {
+            "method_a": "Rerank (BM25)",
+            "method_b": "BM25",
+            "metric": "recall_at_10",
+            "mean_difference": 0.018000000000000002,
+            "ci_low": -0.017226388888888885,
+            "ci_high": 0.05377916666666665,
+            "p_value": 0.31756824317568244,
+            "wins": 23,
+            "losses": 15,
+            "ties": 262,
+            "holm_adjusted_p_value": 1.0
+          },
+          {
+            "method_a": "Rerank (MPNet)",
+            "method_b": "MPNet",
+            "metric": "recall_at_10",
+            "mean_difference": 0.023777777777777783,
+            "ci_low": -0.018224999999999998,
+            "ci_high": 0.06477777777777778,
+            "p_value": 0.26117388261173885,
+            "wins": 26,
+            "losses": 20,
+            "ties": 254,
+            "holm_adjusted_p_value": 1.0
+          },
+          {
+            "method_a": "Rerank (Hybrid MPNet)",
+            "method_b": "Hybrid (MPNet)",
+            "metric": "recall_at_10",
+            "mean_difference": -0.001500000000000002,
+            "ci_low": -0.04027777777777778,
+            "ci_high": 0.036112499999999985,
+            "p_value": 0.94000599940006,
+            "wins": 19,
+            "losses": 20,
+            "ties": 261,
+            "holm_adjusted_p_value": 1.0
+          },
+          {
+            "method_a": "Rerank (MPNet)",
+            "method_b": "Rerank (BM25)",
+            "metric": "recall_at_10",
+            "mean_difference": 0.01777777777777778,
+            "ci_low": -0.012222222222222221,
+            "ci_high": 0.04777777777777778,
+            "p_value": 0.24297570242975702,
+            "wins": 14,
+            "losses": 8,
+            "ties": 278,
+            "holm_adjusted_p_value": 1.0
+          },
+          {
+            "method_a": "Rerank (Hybrid MPNet)",
+            "method_b": "Rerank (MPNet)",
+            "metric": "recall_at_10",
+            "mean_difference": 0.005,
+            "ci_low": -0.015,
+            "ci_high": 0.025,
+            "p_value": 0.613038696130387,
+            "wins": 6,
+            "losses": 4,
+            "ties": 290,
+            "holm_adjusted_p_value": 1.0
+          }
+        ]
+      },
       "error_analysis": {
         "bm25_over_mpnet": {
           "max_margin": 1.0,
@@ -1232,6 +1691,9 @@
               "Hybrid-tuned (MPNet)": 0.6986769201983002,
               "Hybrid (MiniLM)": 0.70855048912953,
               "Hybrid (MPNet)": 0.682709535126427,
+              "Rerank (BM25)": 0.6778712837434497,
+              "Rerank (Hybrid MPNet)": 0.6841693106229181,
+              "Rerank (MPNet)": 0.6957578473315204,
               "MiniLM": 0.6272748521510871,
               "MPNet": 0.6385012494591364,
               "TF-IDF": 0.6450147088033765
@@ -1249,6 +1711,9 @@
               "Hybrid-tuned (MPNet)": 0.6503052018474049,
               "Hybrid (MiniLM)": 0.6437937502176334,
               "Hybrid (MPNet)": 0.6530337001593358,
+              "Rerank (BM25)": 0.6529500311593038,
+              "Rerank (Hybrid MPNet)": 0.6803088888918962,
+              "Rerank (MPNet)": 0.6727247419250649,
               "MiniLM": 0.6418099622023767,
               "MPNet": 0.638077500146996,
               "TF-IDF": 0.6080686924504769
@@ -1266,6 +1731,9 @@
               "Hybrid-tuned (MPNet)": 0.7237815773949404,
               "Hybrid (MiniLM)": 0.7025735265234448,
               "Hybrid (MPNet)": 0.7226723619128612,
+              "Rerank (BM25)": 0.7082751183990365,
+              "Rerank (Hybrid MPNet)": 0.7094106692522704,
+              "Rerank (MPNet)": 0.7158343601514529,
               "MiniLM": 0.6661601420832686,
               "MPNet": 0.6905119998740998,
               "TF-IDF": 0.6721889503577222
@@ -1285,6 +1753,9 @@
               "Hybrid-tuned (MPNet)": 0.6955404420655446,
               "Hybrid (MiniLM)": 0.6882242624002081,
               "Hybrid (MPNet)": 0.6901533876405429,
+              "Rerank (BM25)": 0.6860664738179103,
+              "Rerank (Hybrid MPNet)": 0.6972349779866652,
+              "Rerank (MPNet)": 0.7019452056014701,
               "MiniLM": 0.6508502613401136,
               "MPNet": 0.6617994715024432,
               "TF-IDF": 0.6545337381097033
@@ -1295,6 +1766,175 @@
           "2-3": 18,
           "4+": 5
         }
+      },
+      "rerank_mpnet_error_analysis": {
+        "improved": 73,
+        "unchanged": 171,
+        "degraded": 56,
+        "improves_most": [
+          {
+            "query_id": "1024",
+            "query": "Recurrent mutations occur frequently within CTCF anchor sites adjacent to oncogenes.",
+            "relevant_document_count": 1,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 64,
+            "rerank_first_relevant_rank": 1
+          },
+          {
+            "query_id": "1385",
+            "query": "cSMAC formation enhances weak ligand signalling.",
+            "relevant_document_count": 1,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 34,
+            "rerank_first_relevant_rank": 1
+          },
+          {
+            "query_id": "1395",
+            "query": "p16INK4A accumulation is  linked to an abnormal wound response caused by the microinvasive step of advanced Oral Potentially Malignant Lesions (OPMLs).",
+            "relevant_document_count": 1,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 13,
+            "rerank_first_relevant_rank": 1
+          },
+          {
+            "query_id": "269",
+            "query": "Cold exposure reduces BAT recruitment.",
+            "relevant_document_count": 1,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 12,
+            "rerank_first_relevant_rank": 1
+          },
+          {
+            "query_id": "294",
+            "query": "Crossover hot spots are not found within gene promoters in Saccharomyces cerevisiae.",
+            "relevant_document_count": 1,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 38,
+            "rerank_first_relevant_rank": 1
+          },
+          {
+            "query_id": "690",
+            "query": "Less than 10% of the gabonese children with Schimmelpenning-Feuerstein-Mims syndrome (SFM) had a plasma lactate of more than 5mmol/L.",
+            "relevant_document_count": 1,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 22,
+            "rerank_first_relevant_rank": 1
+          },
+          {
+            "query_id": "743",
+            "query": "Macrolides protect against myocardial infarction.",
+            "relevant_document_count": 1,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 35,
+            "rerank_first_relevant_rank": 1
+          },
+          {
+            "query_id": "845",
+            "query": "Neutrophil extracellular traps (NETs) are released by ANCA-stimulated neutrophils.",
+            "relevant_document_count": 1,
+            "ndcg_margin": 0.7109351736821121,
+            "mpnet_first_relevant_rank": 10,
+            "rerank_first_relevant_rank": 1
+          },
+          {
+            "query_id": "268",
+            "query": "Cold exposure increases BAT recruitment.",
+            "relevant_document_count": 1,
+            "ndcg_margin": 0.6845351232142712,
+            "mpnet_first_relevant_rank": 8,
+            "rerank_first_relevant_rank": 1
+          },
+          {
+            "query_id": "793",
+            "query": "Mitochondria are uninvolved in apoptosis.",
+            "relevant_document_count": 1,
+            "ndcg_margin": 0.6845351232142712,
+            "mpnet_first_relevant_rank": 8,
+            "rerank_first_relevant_rank": 1
+          }
+        ],
+        "hurts_most": [
+          {
+            "query_id": "1245",
+            "query": "The one-child policy has been successful in lowering population growth.",
+            "relevant_document_count": 1,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 1,
+            "rerank_first_relevant_rank": 15
+          },
+          {
+            "query_id": "1278",
+            "query": "The treatment of cancer patients with co-IR blockade does not cause any adverse autoimmune events.",
+            "relevant_document_count": 1,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 1,
+            "rerank_first_relevant_rank": 13
+          },
+          {
+            "query_id": "1279",
+            "query": "The treatment of cancer patients with co-IR blockade precipitates adverse autoimmune events.",
+            "relevant_document_count": 1,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 1,
+            "rerank_first_relevant_rank": 14
+          },
+          {
+            "query_id": "70",
+            "query": "Activation of PPM1D suppresses p53 function.",
+            "relevant_document_count": 2,
+            "ndcg_margin": 1.0,
+            "mpnet_first_relevant_rank": 1,
+            "rerank_first_relevant_rank": 22
+          },
+          {
+            "query_id": "54",
+            "query": "AMP-activated protein kinase (AMPK) activation increases inflammation-related fibrosis in the lungs.",
+            "relevant_document_count": 1,
+            "ndcg_margin": 0.6989700043360187,
+            "mpnet_first_relevant_rank": 1,
+            "rerank_first_relevant_rank": 9
+          },
+          {
+            "query_id": "1204",
+            "query": "The combination of H3K4me3 and H3K79me2 is found in quiescent hair follicle stem cells.",
+            "relevant_document_count": 1,
+            "ndcg_margin": 0.6437928128919779,
+            "mpnet_first_relevant_rank": 1,
+            "rerank_first_relevant_rank": 6
+          },
+          {
+            "query_id": "238",
+            "query": "Cells undergoing methionine restriction may activate miRNAs.",
+            "relevant_document_count": 1,
+            "ndcg_margin": 0.6309297535714575,
+            "mpnet_first_relevant_rank": 2,
+            "rerank_first_relevant_rank": 27
+          },
+          {
+            "query_id": "237",
+            "query": "Cells lacking clpC have a defect in sporulation efficiency in Bacillus subtilis.",
+            "relevant_document_count": 1,
+            "ndcg_margin": 0.5693234419266069,
+            "mpnet_first_relevant_rank": 1,
+            "rerank_first_relevant_rank": 4
+          },
+          {
+            "query_id": "684",
+            "query": "Lack of clpC does not affect sporulation efficiency in Bacillus subtilis cells.",
+            "relevant_document_count": 1,
+            "ndcg_margin": 0.5693234419266069,
+            "mpnet_first_relevant_rank": 1,
+            "rerank_first_relevant_rank": 4
+          },
+          {
+            "query_id": "1191",
+            "query": "The amount of publicly available DNA data doubles every 10 years.",
+            "relevant_document_count": 1,
+            "ndcg_margin": 0.5,
+            "mpnet_first_relevant_rank": 3,
+            "rerank_first_relevant_rank": 15
+          }
+        ]
       },
       "hybrid_mpnet_vs_components": {
         "beats_both": 24,
