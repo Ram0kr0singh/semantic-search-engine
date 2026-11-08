@@ -16,7 +16,13 @@ export function evaluationLabel(run: Pick<EvaluationRun, 'method' | 'model'>): s
   const model = modelShortName(run.model);
   if (run.method === 'sbert' && model) return model;
   if (run.method === 'hybrid' && model) return `Hybrid (${model})`;
+  if (run.method === 'hybrid-tuned' && model) return `Hybrid-tuned (${model})`;
   return run.model ?? run.method;
+}
+
+export function selectedBm25Weight(run: Pick<EvaluationRun, 'method' | 'fusion'>): number | null {
+  const weight = run.method === 'hybrid-tuned' ? run.fusion?.w_bm25 : undefined;
+  return typeof weight === 'number' && Number.isFinite(weight) ? weight : null;
 }
 
 export function evaluationMethodOrder(run: Pick<EvaluationRun, 'method' | 'model'>): number {
@@ -28,7 +34,9 @@ export function evaluationMethodOrder(run: Pick<EvaluationRun, 'method' | 'model
   if (run.method === 'sbert' && model === 'MPNet') return 3;
   if (run.method === 'hybrid' && model === 'MiniLM') return 4;
   if (run.method === 'hybrid' && model === 'MPNet') return 5;
-  return 6;
+  if (run.method === 'hybrid-tuned' && model === 'MiniLM') return 6;
+  if (run.method === 'hybrid-tuned' && model === 'MPNet') return 7;
+  return 8;
 }
 
 export function isBestMetric(

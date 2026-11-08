@@ -31,6 +31,8 @@ describe('EvaluationView', () => {
       run({ method: 'sbert', model: 'sentence-transformers/all-MiniLM-L6-v2', ndcg_at_10: .8, index_build_seconds: 20, average_query_latency_ms: 15.48 }),
       run({ method: 'hybrid', model: 'sentence-transformers/all-mpnet-base-v2', ndcg_at_10: .7 }),
       run({ method: 'hybrid', model: 'sentence-transformers/all-MiniLM-L6-v2', ndcg_at_10: .6 }),
+      run({ method: 'hybrid-tuned', model: 'sentence-transformers/all-mpnet-base-v2', fusion: { w_bm25: 0 }, ndcg_at_10: .75 }),
+      run({ method: 'hybrid-tuned', model: 'sentence-transformers/all-MiniLM-L6-v2', fusion: { w_bm25: .7 }, ndcg_at_10: .65 }),
       run({ method: 'zeta', model: null, index_build_seconds: 30, average_query_latency_ms: 40 }),
       run({ method: 'bm25', model: null, index_build_seconds: 15, average_query_latency_ms: 18 }),
       run({ method: 'alpha', model: null, index_build_seconds: 30, average_query_latency_ms: 40 }),
@@ -50,24 +52,29 @@ describe('EvaluationView', () => {
     const scifactSection = screen.getByRole('heading', { name: 'SciFact' }).closest('section');
     if (!scifactSection) throw new Error('SciFact section was not rendered.');
     const rows = within(scifactSection).getAllByRole('row').slice(1);
-    expect(rows.map((row) => row.querySelector('th')?.textContent)).toEqual([
+    expect(rows.map((row) => row.querySelector('.evaluation-name')?.textContent)).toEqual([
       'TF-IDF',
       'BM25',
       'MiniLM',
       'MPNet',
       'Hybrid (MiniLM)',
       'Hybrid (MPNet)',
+      'Hybrid-tuned (MiniLM)',
+      'Hybrid-tuned (MPNet)',
       'alpha',
       'zeta',
     ]);
+    expect(within(scifactSection).getAllByText('w = 0.7')).toHaveLength(2);
+    expect(within(scifactSection).getAllByText('w = 0')).toHaveLength(2);
+    expect(within(scifactSection).getByText('The dev-selected BM25 weight for Hybrid-tuned (MPNet) is 0, so it is identical to the dense retriever.')).toBeInTheDocument();
     const [tfidfRow, , miniLmRow, mpnetRow] = rows;
     expect(tfidfRow?.querySelectorAll('td')[5]?.querySelector('[aria-label="Best value"]')).not.toBeNull();
     expect(miniLmRow?.querySelectorAll('td')[6]?.querySelector('[aria-label="Best value"]')).not.toBeNull();
     expect(mpnetRow?.querySelectorAll('td')[0]?.querySelector('[aria-label="Best value"]')).not.toBeNull();
     expect(tfidfRow?.querySelectorAll('td')[0]?.querySelector('[aria-label="Best value"]')).toBeNull();
     expect(mpnetRow?.querySelectorAll('td')[5]?.querySelector('[aria-label="Best value"]')).toBeNull();
-    expect(within(scifactSection).getAllByTitle('sentence-transformers/all-MiniLM-L6-v2')).toHaveLength(4);
-    expect(within(scifactSection).getAllByTitle('sentence-transformers/all-mpnet-base-v2')).toHaveLength(4);
+    expect(within(scifactSection).getAllByTitle('sentence-transformers/all-MiniLM-L6-v2')).toHaveLength(6);
+    expect(within(scifactSection).getAllByTitle('sentence-transformers/all-mpnet-base-v2')).toHaveLength(6);
     const chart = within(scifactSection).getByRole('img');
     expect(Array.from(chart.querySelectorAll('.font-medium')).map((element) => element.textContent)).toEqual([
       'TF-IDF',
@@ -76,6 +83,8 @@ describe('EvaluationView', () => {
       'MPNet',
       'Hybrid (MiniLM)',
       'Hybrid (MPNet)',
+      'Hybrid-tuned (MiniLM)w = 0.7',
+      'Hybrid-tuned (MPNet)w = 0',
       'alpha',
       'zeta',
     ]);
