@@ -13,37 +13,56 @@ from backend.app.evaluation.runner import EvaluationReport, PerQueryMetrics, eva
 from backend.app.retrieval.base import Retriever
 from backend.app.retrieval.bm25 import BM25Retriever
 from backend.app.retrieval.hybrid import HybridRetriever
+from backend.app.retrieval.rerank import RerankingRetriever
 from backend.app.retrieval.sbert import SentenceBertRetriever
 from backend.app.retrieval.tfidf import TfidfRetriever
 
 
-def build_retriever(method: str, model_name: str) -> Retriever:
+def build_first_stage(first_stage: str, model_name: str) -> Retriever:
+    """Construct one of the fixed first-stage retrievers for reranking."""
+    if first_stage == "bm25":
+        return BM25Retriever()
+    if first_stage == "sbert":
+        return SentenceBertRetriever(model_name=model_name)
+    if first_stage == "hybrid":
+        return HybridRetriever([BM25Retriever(), SentenceBertRetriever(model_name=model_name)])
+    raise ValueError(f"Unknown first stage '{first_stage}'.")
+
+
+def build_retriever(method: str, model_name: str, first_stage: str = "bm25") -> Retriever:
     """Construct a registered retriever implementation by method name."""
     registry: dict[str, type[Retriever]] = {"tfidf": TfidfRetriever, "bm25": BM25Retriever}
     if method == "sbert":
         return SentenceBertRetriever(model_name=model_name)
     if method == "hybrid":
         return HybridRetriever([BM25Retriever(), SentenceBertRetriever(model_name=model_name)])
+    if method == "rerank":
+        return RerankingRetriever(build_first_stage(first_stage, model_name))
     try:
         return registry[method]()
     except KeyError as exc:
-        methods = (*registry, "sbert", "hybrid")
+        methods = (*registry, "sbert", "hybrid", "rerank")
         raise ValueError(f"Unknown method '{method}'. Available methods: {', '.join(methods)}") from exc
 
 
-def result_filename(dataset: str, method: str, model_name: str | None = None) -> str:
+def result_filename(dataset: str, method: str, model_name: str | None = None, first_stage: str | None = None) -> str:
     """Return a collision-resistant, filesystem-safe JSON report filename."""
     if method in {"sbert", "hybrid", "hybrid-tuned"}:
         if not model_name:
             raise ValueError("A dense or hybrid result filename requires a model name.")
         model_slug = re.sub(r"[^A-Za-z0-9._-]+", "-", model_name.rsplit("/", 1)[-1]).strip("-._").lower()
         return f"{dataset}_{method}_{model_slug}.json"
+    if method == "rerank":
+        if not first_stage:
+            raise ValueError("A rerank result filename requires a first stage.")
+        suffix = "" if first_stage == "bm25" else f"_{re.sub(r'[^A-Za-z0-9._-]+', '-', (model_name or '').rsplit('/', 1)[-1]).strip('-._').lower()}"
+        return f"{dataset}_rerank-{first_stage}{suffix}.json"
     return f"{dataset}_{method}.json"
 
 
-def per_query_filename(dataset: str, method: str, model_name: str | None = None) -> str:
+def per_query_filename(dataset: str, method: str, model_name: str | None = None, first_stage: str | None = None) -> str:
     """Return the companion filename used for saved query-level metrics."""
-    return f"{Path(result_filename(dataset, method, model_name)).stem}_perquery.json"
+    return f"{Path(result_filename(dataset, method, model_name, first_stage)).stem}_perquery.json"
 
 
 def print_report(method: str, report: EvaluationReport) -> None:
@@ -108,7 +127,7 @@ def main() -> None:
     parser.add_argument(
         "--method",
         default="tfidf",
-        choices=("tfidf", "bm25", "sbert", "hybrid", "all"),
+        choices=("tfidf", "bm25", "sbert", "hybrid", "rerank", "all"),
         help="Retriever to evaluate, or all registered retrievers.",
     )
     parser.add_argument(
@@ -117,6 +136,7 @@ def main() -> None:
         choices=(*dataset_names(), "all"),
         help="BEIR dataset to evaluate, or all registered datasets.",
     )
+    parser.add_argument("--first-stage", choices=("bm25", "sbert", "hybrid"), default="bm25", help="Fixed candidate retriever for --method rerank.")
     parser.add_argument(
         "--model",
         default="sentence-transformers/all-MiniLM-L6-v2",
@@ -144,7 +164,7 @@ def main() -> None:
                     [instances["bm25"], instances["sbert"]], reuse_indexed_components=True
                 )
             else:
-                instances[method] = build_retriever(method, args.model)
+                instances[method] = build_retriever(method, args.model, args.first_stage)
             if args.save_per_query:
                 reports[method], per_query[method] = evaluate_with_per_query(
                     instances[method], dataset.corpus, dataset.queries, dataset.qrels,
@@ -163,30 +183,34 @@ def main() -> None:
             print_report(args.method, reports[args.method])
 
         for method, report in reports.items():
-            output_path = args.results_dir / result_filename(name, method, args.model)
+            output_path = args.results_dir / result_filename(name, method, args.model, args.first_stage)
             payload = {
                 "method": method,
                 "dataset": name,
-                "model": args.model if method in {"sbert", "hybrid"} else None,
+                "model": args.model if method in {"sbert", "hybrid"} or (method == "rerank" and args.first_stage != "bm25") else None,
                 "generated_at": datetime.now(timezone.utc).isoformat(),
                 **report.to_dict(),
             }
             if method == "hybrid":
                 payload["fusion"] = {"method": "rrf", "k_rrf": 60, "depth": 100, "components": ["bm25", "sbert"]}
+            if method == "rerank":
+                payload["reranking"] = {"first_stage": args.first_stage, "dense_model": args.model if args.first_stage != "bm25" else None, "cross_encoder": "cross-encoder/ms-marco-MiniLM-L-6-v2", "depth": 100, "batch_size": 32}
             output_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
             print(f"Saved JSON report: {output_path}")
             if args.save_per_query:
-                query_output_path = args.results_dir / per_query_filename(name, method, args.model)
+                query_output_path = args.results_dir / per_query_filename(name, method, args.model, args.first_stage)
                 query_payload = {
                     "method": method,
                     "dataset": name,
-                    "model": args.model if method in {"sbert", "hybrid"} else None,
+                    "model": args.model if method in {"sbert", "hybrid"} or (method == "rerank" and args.first_stage != "bm25") else None,
                     "generated_at": payload["generated_at"],
                     "query_count": report.query_count,
                     "queries": [item.to_dict() for item in per_query[method]],
                 }
                 if method == "hybrid":
                     query_payload["fusion"] = payload["fusion"]
+                if method == "rerank":
+                    query_payload["reranking"] = payload["reranking"]
                 query_output_path.write_text(json.dumps(query_payload, indent=2) + "\n", encoding="utf-8")
                 print(f"Saved per-query JSON: {query_output_path}")
 

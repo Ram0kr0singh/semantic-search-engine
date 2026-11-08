@@ -47,7 +47,7 @@ export interface SearchParams {
   method: string;
   k: number;
 }
-export interface EvaluationRun { method: string; dataset: string; model: string | null; generated_at: string; query_count: number; recall_at_1: number; recall_at_5: number; recall_at_10: number; recall_at_100: number; mrr_at_10: number; ndcg_at_10: number; index_build_seconds: number; average_query_latency_ms: number; fusion?: { w_bm25?: number }; }
+export interface EvaluationRun { method: string; dataset: string; model: string | null; generated_at: string; query_count: number; recall_at_1: number; recall_at_5: number; recall_at_10: number; recall_at_100: number; mrr_at_10: number; ndcg_at_10: number; index_build_seconds: number; average_query_latency_ms: number | null; fusion_only_latency_ms?: number | null; latency_note?: string | null; fusion?: { w_bm25?: number }; reranking?: { first_stage?: string; dense_model?: string | null }; }
 export interface EvaluationResponse { runs: EvaluationRun[]; hardware_note: string; generated_at: string; }
 
 export class ApiError extends Error {

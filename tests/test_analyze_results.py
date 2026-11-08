@@ -80,6 +80,21 @@ def test_error_examples_choose_largest_margin_and_break_ties_by_query_id() -> No
     assert result["mpnet_over_bm25"]["queries_at_max_margin"] == 1
 
 
+def test_rerank_family_uses_separate_metrics_and_mpnet_error_counts() -> None:
+    methods = {}
+    labels = ("BM25", "TF-IDF", "MiniLM", "MPNet", "Hybrid (MPNet)", "Rerank (BM25)", "Rerank (MPNet)", "Rerank (Hybrid MPNet)")
+    for label in labels:
+        methods[label] = {}
+        for query_id, value in (("a", .2), ("b", .4)):
+            score = value + (.1 if label == "Rerank (MPNet)" and query_id == "a" else -.1 if label == "Rerank (MPNet)" and query_id == "b" else 0)
+            methods[label][query_id] = {"query_id": query_id, "query": query_id, "relevant_document_count": 1, "first_relevant_rank": 1, "ndcg_at_10": score, "recall_at_10": score, "recall_at_100": score}
+    data = analysis({"test": methods})["datasets"]["test"]
+    assert set(data["rerank_comparisons"]) == {"ndcg_at_10", "recall_at_10"}
+    assert len(data["rerank_comparisons"]["ndcg_at_10"]) == 5
+    assert data["rerank_mpnet_error_analysis"]["improved"] == 1
+    assert data["rerank_mpnet_error_analysis"]["degraded"] == 1
+
+
 def test_bucket_logic_splits_tertiles_and_relevance_groups() -> None:
     rows = [{"query_id": str(index), "query": "word " * (index + 1), "relevant_document_count": (1, 2, 4)[index % 3]} for index in range(6)]
     buckets = bucket_rows(rows)

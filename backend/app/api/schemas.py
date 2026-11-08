@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -52,7 +54,11 @@ class EvaluationRun(BaseModel):
     mrr_at_10: float = Field(ge=0, le=1)
     ndcg_at_10: float = Field(ge=0, le=1)
     index_build_seconds: float = Field(ge=0)
-    average_query_latency_ms: float = Field(ge=0)
+    average_query_latency_ms: float | None = Field(ge=0)
+    fusion_only_latency_ms: float | None = Field(default=None, ge=0)
+    latency_note: str | None = None
+    fusion: dict[str, Any] | None = None
+    reranking: dict[str, Any] | None = None
 
 
 class EvaluationResponse(BaseModel):

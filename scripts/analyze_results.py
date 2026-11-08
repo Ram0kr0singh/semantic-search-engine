@@ -19,6 +19,13 @@ def method_label(payload: dict[str, Any]) -> str:
     """Map saved run metadata to the stable labels used in reports."""
     if payload["method"] in {"bm25", "tfidf"}:
         return {"bm25": "BM25", "tfidf": "TF-IDF"}[payload["method"]]
+    if payload["method"] == "rerank":
+        first_stage = payload.get("reranking", {}).get("first_stage")
+        if first_stage == "bm25":
+            return "Rerank (BM25)"
+        if first_stage in {"sbert", "hybrid"} and "mpnet" in str(payload.get("model", "")).lower():
+            return "Rerank (MPNet)" if first_stage == "sbert" else "Rerank (Hybrid MPNet)"
+        raise ValueError(f"Unsupported rerank metadata: {payload.get('reranking')}")
     model = str(payload.get("model", "")).lower()
     prefix = "Hybrid (" if payload["method"] == "hybrid" else "Hybrid-tuned (" if payload["method"] == "hybrid-tuned" else ""
     suffix = ")" if payload["method"] in {"hybrid", "hybrid-tuned"} else ""
@@ -132,6 +139,18 @@ def tuned_comparison_pairs(methods: dict[str, object]) -> tuple[tuple[str, str],
     return tuple(pairs)
 
 
+def rerank_comparison_pairs(methods: dict[str, object]) -> tuple[tuple[str, str], ...]:
+    """Return the fixed reranking family when its required runs are present."""
+    pairs = (
+        ("Rerank (BM25)", "BM25"),
+        ("Rerank (MPNet)", "MPNet"),
+        ("Rerank (Hybrid MPNet)", "Hybrid (MPNet)"),
+        ("Rerank (MPNet)", "Rerank (BM25)"),
+        ("Rerank (Hybrid MPNet)", "Rerank (MPNet)"),
+    )
+    return pairs if all(method in methods for pair in pairs for method in pair) else ()
+
+
 def bootstrap_rng(dataset: str, metric: str, method_a: str, method_b: str) -> np.random.Generator:
     """Make every comparison reproducible regardless of comparison ordering."""
     material = f"20261107|{dataset}|{metric}|{method_a}|{method_b}".encode()
@@ -144,17 +163,20 @@ def analysis(runs: dict[str, dict[str, dict[str, dict[str, Any]]]], tuning: dict
     output: dict[str, Any] = {"method": {"bootstrap_resamples": 10_000, "seed": 20261107, "confidence_interval": "2.5th and 97.5th percentiles of paired bootstrap means", "p_value": "two-sided centered paired bootstrap with add-one correction: resample differences centered at their observed mean; p = (count_extreme + 1) / (resamples + 1), where count_extreme is the number of null bootstrap means with absolute value at least the observed absolute mean", "holm": "Holm-Bonferroni adjustment across the complete available comparison family separately for each metric"}, "datasets": {}}
     pending: dict[str, list[dict[str, Any]]] = {metric: [] for metric in METRICS}
     tuned_pending: dict[str, list[dict[str, Any]]] = {metric: [] for metric in METRICS}
+    rerank_metrics = ("ndcg_at_10", "recall_at_10")
+    rerank_pending: dict[str, list[dict[str, Any]]] = {metric: [] for metric in rerank_metrics}
     for dataset, methods in sorted(runs.items()):
         pairs = comparison_pairs(methods)
         tuned_pairs = tuned_comparison_pairs(methods)
-        required = {method for pair in (*pairs, *tuned_pairs) for method in pair}
+        rerank_pairs = rerank_comparison_pairs(methods)
+        required = {method for pair in (*pairs, *tuned_pairs, *rerank_pairs) for method in pair}
         missing = required - methods.keys()
         if missing:
             raise ValueError(f"{dataset} is missing per-query runs for: {', '.join(sorted(missing))}")
         ids = set.intersection(*(set(methods[method]) for method in required))
         if not ids:
             raise ValueError(f"{dataset} has no query IDs shared by all methods.")
-        dataset_output: dict[str, Any] = {"query_count": len(ids), "comparisons": {}, "tuned_hybrid_comparisons": {}, "error_analysis": {}, "breakdowns": breakdown({method: {qid: row for qid, row in rows.items() if qid in ids} for method, rows in methods.items()})}
+        dataset_output: dict[str, Any] = {"query_count": len(ids), "comparisons": {}, "tuned_hybrid_comparisons": {}, "rerank_comparisons": {}, "error_analysis": {}, "breakdowns": breakdown({method: {qid: row for qid, row in rows.items() if qid in ids} for method, rows in methods.items()})}
         for metric in METRICS:
             entries = []
             for left, right in pairs:
@@ -168,6 +190,13 @@ def analysis(runs: dict[str, dict[str, dict[str, dict[str, Any]]]], tuning: dict
                 entry = {"method_a": left, "method_b": right, "metric": metric, **paired_bootstrap(differences, bootstrap_rng(dataset, metric, left, right)), **win_loss_tie(differences)}
                 tuned_entries.append(entry); tuned_pending[metric].append(entry)
             dataset_output["tuned_hybrid_comparisons"][metric] = tuned_entries
+        for metric in rerank_metrics:
+            entries = []
+            for left, right in rerank_pairs:
+                differences = [methods[left][qid][metric] - methods[right][qid][metric] for qid in sorted(ids)]
+                entry = {"method_a": left, "method_b": right, "metric": metric, **paired_bootstrap(differences, bootstrap_rng(dataset, metric, left, right)), **win_loss_tie(differences)}
+                entries.append(entry); rerank_pending[metric].append(entry)
+            dataset_output["rerank_comparisons"][metric] = entries
         differences = {qid: methods["BM25"][qid]["ndcg_at_10"] - methods["MPNet"][qid]["ndcg_at_10"] for qid in ids}
         def error_entry(qid: str, margin: float) -> dict[str, Any]:
             bm25, mpnet = methods["BM25"][qid], methods["MPNet"][qid]
@@ -189,6 +218,18 @@ def analysis(runs: dict[str, dict[str, dict[str, dict[str, Any]]]], tuning: dict
                 "examples": [error_entry(qid, margin) for qid, margin in ranked[:10]],
             }
         dataset_output["error_analysis"] = error_analysis
+        if "Rerank (MPNet)" in methods:
+            rerank_differences = {qid: methods["Rerank (MPNet)"][qid]["ndcg_at_10"] - methods["MPNet"][qid]["ndcg_at_10"] for qid in ids}
+            def rerank_error_entry(qid: str, margin: float) -> dict[str, Any]:
+                before, after = methods["MPNet"][qid], methods["Rerank (MPNet)"][qid]
+                return {"query_id": qid, "query": before["query"], "relevant_document_count": before["relevant_document_count"], "ndcg_margin": margin, "mpnet_first_relevant_rank": before["first_relevant_rank"], "rerank_first_relevant_rank": after["first_relevant_rank"]}
+            dataset_output["rerank_mpnet_error_analysis"] = {
+                "improved": sum(value > 0 for value in rerank_differences.values()),
+                "unchanged": sum(value == 0 for value in rerank_differences.values()),
+                "degraded": sum(value < 0 for value in rerank_differences.values()),
+                "improves_most": [rerank_error_entry(qid, margin) for qid, margin in sorted(((qid, value) for qid, value in rerank_differences.items() if value > 0), key=lambda item: (-item[1], item[0]))[:10]],
+                "hurts_most": [rerank_error_entry(qid, -margin) for qid, margin in sorted(((qid, value) for qid, value in rerank_differences.items() if value < 0), key=lambda item: (item[1], item[0]))[:10]],
+            }
         hybrid_mpnet = "Hybrid (MPNet)"
         if hybrid_mpnet in methods:
             hybrid_counts = {"beats_both": 0, "loses_to_both": 0, "between_or_tied": 0}
@@ -212,6 +253,10 @@ def analysis(runs: dict[str, dict[str, dict[str, dict[str, Any]]]], tuning: dict
         adjusted = holm_adjust([entry["p_value"] for entry in entries])
         for entry, p_value in zip(entries, adjusted):
             entry["holm_adjusted_p_value"] = p_value
+    for metric, entries in rerank_pending.items():
+        adjusted = holm_adjust([entry["p_value"] for entry in entries])
+        for entry, p_value in zip(entries, adjusted):
+            entry["holm_adjusted_p_value"] = p_value
     output["tuning"] = tuning or {}
     return output
 
@@ -226,7 +271,7 @@ def load_tuning(analysis_dir: Path) -> dict[str, Any]:
 
 
 def markdown(report: dict[str, Any]) -> str:
-    lines = ["# Per-query statistical analysis", "", "All values are calculated from the committed per-query snapshots. P-values use a " + report["method"]["p_value"] + ". Confidence intervals can differ slightly in the third decimal from the preceding report because each paired bootstrap now uses a stable comparison-specific seed.", ""]
+    lines = ["# Per-query statistical analysis", "", "All values are calculated from the committed per-query snapshots. P-values use a " + report["method"]["p_value"] + ". Each bootstrap comparison is seeded from a stable hash of the global seed, dataset, metric, method A, and method B; this made confidence intervals of earlier comparisons shift slightly in the third decimal once.", ""]
     def format_p_value(value: float) -> str:
         return "< 0.0001" if value < 0.0001 else f"{value:.6f}"
     def format_rank(value: int | None) -> str:
@@ -242,6 +287,14 @@ def markdown(report: dict[str, Any]) -> str:
         if any(tuned_comparisons.values()):
             lines += ["### Tuned-hybrid comparisons (separate Holm family)", "", "This separate family compares the pre-specified development-selected weighted hybrid on test queries. These adjusted p-values do not alter the earlier comparison family.", ""]
             for metric, entries in tuned_comparisons.items():
+                lines += [f"#### {metric}", "", "| Comparison (A − B) | Mean difference | 95% CI | p-value | Holm p-value | A wins | B wins | Ties |", "| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |"]
+                for item in entries:
+                    lines.append(f"| {item['method_a']} − {item['method_b']} | {item['mean_difference']:.6f} | [{item['ci_low']:.6f}, {item['ci_high']:.6f}] | {format_p_value(item['p_value'])} | {format_p_value(item['holm_adjusted_p_value'])} | {item['wins']} | {item['losses']} | {item['ties']} |")
+                lines.append("")
+        rerank_comparisons = data.get("rerank_comparisons", {})
+        if any(rerank_comparisons.values()):
+            lines += ["### Reranking comparisons (separate Holm family)", "", "This separate family is the pre-specified cross-encoder reranking comparison. Recall@100 is excluded because reranking only reorders the same 100 first-stage candidates.", ""]
+            for metric, entries in rerank_comparisons.items():
                 lines += [f"#### {metric}", "", "| Comparison (A − B) | Mean difference | 95% CI | p-value | Holm p-value | A wins | B wins | Ties |", "| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |"]
                 for item in entries:
                     lines.append(f"| {item['method_a']} − {item['method_b']} | {item['mean_difference']:.6f} | [{item['ci_low']:.6f}, {item['ci_high']:.6f}] | {format_p_value(item['p_value'])} | {format_p_value(item['holm_adjusted_p_value'])} | {item['wins']} | {item['losses']} | {item['ties']} |")
@@ -265,6 +318,12 @@ def markdown(report: dict[str, Any]) -> str:
         for direction in ("bm25_over_mpnet", "mpnet_over_bm25"):
             for item in data["error_analysis"][direction]["examples"]:
                 lines.append(f"| {direction} | {item['query_id']} | {item['query'].replace('|', '\\|')} | {item['relevant_document_count']} | {item['ndcg_margin']:.6f} | {format_rank(item['bm25_first_relevant_rank'])} | {format_rank(item['mpnet_first_relevant_rank'])} |")
+        if "rerank_mpnet_error_analysis" in data:
+            rerank_errors = data["rerank_mpnet_error_analysis"]
+            lines += ["", "### Error analysis: Rerank (MPNet) vs MPNet", "", "These examples are descriptive, not causal: one hypothesis is that cross-encoder relevance scores reorder already retrieved candidates differently from the dense first stage.", "", "| Outcome | Queries |", "| --- | ---: |", f"| Improved | {rerank_errors['improved']} |", f"| Unchanged | {rerank_errors['unchanged']} |", f"| Degraded | {rerank_errors['degraded']} |", "", "| Direction | Query ID | Query | Relevant docs | nDCG@10 margin | MPNet first relevant rank | Rerank first relevant rank |", "| --- | --- | --- | ---: | ---: | ---: | ---: |"]
+            for direction, examples in (("improves most", rerank_errors["improves_most"]), ("hurts most", rerank_errors["hurts_most"])):
+                for item in examples:
+                    lines.append(f"| {direction} | {item['query_id']} | {item['query'].replace('|', '\\|')} | {item['relevant_document_count']} | {item['ndcg_margin']:.6f} | {format_rank(item['mpnet_first_relevant_rank'])} | {format_rank(item['rerank_first_relevant_rank'])} |")
         lines += ["", "### nDCG@10 breakdowns", ""]
         for dimension, groups in data["breakdowns"].items():
             if dimension == "omitted_relevant_document_buckets":

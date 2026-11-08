@@ -20,6 +20,16 @@ describe('evaluation metric highlighting', () => {
     expect(selectedBm25Weight({ method: 'hybrid', fusion: { w_bm25: .7 } })).toBeNull();
   });
 
+  it('labels and orders future rerank records using their report metadata', () => {
+    const bm25 = { method: 'rerank', model: null, reranking: { first_stage: 'bm25', dense_model: null } };
+    const mpnet = { method: 'rerank', model: 'sentence-transformers/all-mpnet-base-v2', reranking: { first_stage: 'sbert', dense_model: 'sentence-transformers/all-mpnet-base-v2' } };
+    const hybrid = { method: 'rerank', model: 'sentence-transformers/all-mpnet-base-v2', reranking: { first_stage: 'hybrid', dense_model: 'sentence-transformers/all-mpnet-base-v2' } };
+    expect(evaluationLabel(bm25)).toBe('Rerank (BM25)');
+    expect(evaluationLabel(mpnet)).toBe('Rerank (MPNet)');
+    expect(evaluationLabel(hybrid)).toBe('Rerank (Hybrid MPNet)');
+    expect(evaluationMethodOrder(bm25)).toBeGreaterThan(evaluationMethodOrder({ method: 'hybrid-tuned', model: 'sentence-transformers/all-mpnet-base-v2' }));
+  });
+
   it('marks the highest value for higher-is-better metrics', () => {
     expect(isBestMetric(runs[1], runs, 'ndcg_at_10', 'higher')).toBe(true);
     expect(isBestMetric(runs[0], runs, 'ndcg_at_10', 'higher')).toBe(false);

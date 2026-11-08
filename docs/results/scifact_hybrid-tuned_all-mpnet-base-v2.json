@@ -11,7 +11,7 @@
   "mrr_at_10": 0.6534603174603174,
   "ndcg_at_10": 0.6909212331468819,
   "index_build_seconds": 62.726032299993676,
-  "average_query_latency_ms": 0.1319599999987986,
+  "average_query_latency_ms": null,
   "fusion": {
     "method": "weighted-rrf",
     "k_rrf": 60,
@@ -37,5 +37,7 @@
     "selection_rule": "highest mean nDCG@10; ties: closest to 0.5, then smaller weight",
     "development_split": "train",
     "development_query_count": 809
-  }
+  },
+  "fusion_only_latency_ms": 0.1319599999987986,
+  "latency_note": "fusion of saved component rankings only; not an end-to-end query time"
 }

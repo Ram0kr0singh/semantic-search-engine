@@ -91,8 +91,9 @@ links are listed here.
 
 - TF-IDF and BM25 keyword retrieval, Sentence-BERT retrieval with cosine
   similarity for normalized dense embeddings and FAISS inner-product search,
-  BM25 + Sentence-BERT Hybrid (RRF) retrieval, and a separately tuned weighted
-  hybrid evaluation protocol.
+  BM25 + Sentence-BERT Hybrid (RRF) retrieval, a cross-encoder reranker over
+  fixed first-stage candidates, and a separately tuned weighted hybrid
+  evaluation protocol.
 - Evaluation harness reporting Recall@1/5/10/100, MRR@10, nDCG@10, index build
   time, and average query latency.
 - Registry and loaders for BEIR SciFact and FiQA.
@@ -278,6 +279,9 @@ python -m scripts.evaluate --dataset fiqa --method bm25 --save-per-query
 python -m scripts.evaluate --dataset fiqa --method sbert --model sentence-transformers/all-mpnet-base-v2 --save-per-query
 python -m scripts.evaluate --dataset scifact --method sbert --model sentence-transformers/all-mpnet-base-v2 --save-per-query
 python -m scripts.evaluate --dataset all --method hybrid --model sentence-transformers/all-mpnet-base-v2 --save-per-query
+python -m scripts.evaluate --dataset all --method rerank --first-stage bm25 --save-per-query
+python -m scripts.evaluate --dataset all --method rerank --first-stage sbert --model sentence-transformers/all-mpnet-base-v2 --save-per-query
+python -m scripts.evaluate --dataset all --method rerank --first-stage hybrid --model sentence-transformers/all-mpnet-base-v2 --save-per-query
 python -m scripts.tune_hybrid --dataset scifact --model sentence-transformers/all-MiniLM-L6-v2
 python -m scripts.tune_hybrid --dataset scifact --model sentence-transformers/all-mpnet-base-v2
 python -m scripts.tune_hybrid --dataset fiqa --model sentence-transformers/all-MiniLM-L6-v2
@@ -340,6 +344,18 @@ scores BM25 weights from 0.0 through 1.0 on a disjoint development split
 to 0.5, then lower weight), writes the tuning artifact, and evaluates the test
 queries once using that selected weight. It does not tune on test metrics.
 
+The cross-encoder reranking protocol was fixed before results were seen. It
+uses [`cross-encoder/ms-marco-MiniLM-L-6-v2`](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2)
+(Apache-2.0), whose configuration has a 512-token maximum input length, with
+default truncation and batch size 32. It scores `(query, title + text)` pairs
+and reranks exactly the top 100 from BM25, MPNet, or equal-weight Hybrid
+(MPNet), using only the cross-encoder score (ties: first-stage rank, then
+document ID). Reranking only reorders those candidates, so Recall@100 equals
+the first-stage Recall@100 by construction and is excluded from rerank
+comparisons. Rerank query latency includes first-stage search, cross-encoder
+scoring of up to 100 pairs, and final sorting; its index time is the
+first-stage index time, with model loading outside the timed index build.
+
 In the latest committed snapshot, indexing FiQA with MPNet took 422.38 seconds
 on the noted laptop GPU. Model loading is measured separately from index build
 time by the evaluation harness.
@@ -353,7 +369,7 @@ pytest traversing the local Hugging Face model cache under `data/`.
 .\.venv\Scripts\python.exe -m pytest tests
 ```
 
-The verified result is 66 passing backend tests. Run frontend checks from
+The verified result is 71 passing backend tests. Run frontend checks from
 `frontend/`:
 
 ```powershell
@@ -389,8 +405,8 @@ docker-compose*.yml    Default and optional GPU Compose configurations
   documentation records its license as CC0-1.0.
 - General-purpose embedding models can return topical matches rather than
   intended meaning, particularly for out-of-domain queries.
-- Retrieval has no reranker; the evaluation includes fixed, equal-weight RRF
-  hybrid fusion of BM25 and Sentence-BERT candidates.
+- The evaluation includes fixed equal-weight RRF hybrid fusion and a fixed
+  cross-encoder reranking protocol; neither is exposed through the search API.
 - Docker defaults to CPU; local CUDA use requires a compatible PyTorch build
   and GPU environment.
 - Timing values are from a single laptop run and will vary with hardware and
@@ -407,7 +423,6 @@ docker-compose*.yml    Default and optional GPU Compose configurations
 
 - Evaluate score-normalised fusion as an alternative to the implemented
   weighted RRF.
-- Evaluate a cross-encoder reranker.
 - Add passage-level search over uploaded documents using the existing chunker.
 - Add benchmark datasets such as NFCorpus.
 - Add search history backed by a database if persistence becomes necessary.

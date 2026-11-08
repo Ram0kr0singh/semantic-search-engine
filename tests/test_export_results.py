@@ -70,3 +70,45 @@ def test_exports_valid_tuned_hybrid_and_per_query_reports(tmp_path: Path) -> Non
     assert skipped == []
     assert [path.name for path in per_exported] == ["fiqa_hybrid-tuned_all-minilm-l6-v2_perquery.json"]
     assert per_skipped == []
+
+
+def test_exports_real_shape_tuned_run_with_null_end_to_end_latency(tmp_path: Path) -> None:
+    source, output = tmp_path / "results", tmp_path / "docs" / "results"
+    source.mkdir(parents=True)
+    fusion = {"method": "weighted-rrf", "k_rrf": 60, "depth": 100, "components": ["bm25", "sbert"], "w_bm25": .7, "grid": [index / 10 for index in range(11)], "selection_rule": "highest mean nDCG@10; ties: closest to 0.5, then smaller weight", "development_split": "train", "development_query_count": 809}
+    # Copied from the SciFact MiniLM hybrid-tuned entry in summary.json.
+    tuned = report(method="hybrid-tuned", dataset="scifact", model="sentence-transformers/all-MiniLM-L6-v2", average_query_latency_ms=.12751733336093216, fusion=fusion)
+    (source / "scifact_hybrid-tuned_all-minilm-l6-v2.json").write_text(json.dumps(tuned))
+    exported, skipped, summary = export_results(source, output, "test")
+    assert [path.name for path in exported] == ["scifact_hybrid-tuned_all-minilm-l6-v2.json"]
+    assert skipped == []
+    snapshot = summary["runs"][0]
+    assert snapshot["average_query_latency_ms"] is None
+    assert snapshot["fusion_only_latency_ms"] == .12751733336093216
+    assert snapshot["latency_note"] == "fusion of saved component rankings only; not an end-to-end query time"
+    assert json.loads((source / "scifact_hybrid-tuned_all-minilm-l6-v2.json").read_text())["average_query_latency_ms"] == .12751733336093216
+
+
+def test_rejects_null_latency_for_non_tuned_runs(tmp_path: Path) -> None:
+    source, output = tmp_path / "results", tmp_path / "docs" / "results"
+    source.mkdir(parents=True)
+    (source / "invalid.json").write_text(json.dumps(report(average_query_latency_ms=None)))
+    exported, skipped, _ = export_results(source, output, "test")
+    assert exported == []
+    assert skipped == [(source / "invalid.json", "average_query_latency_ms is not numeric")]
+
+
+def test_exports_valid_rerank_reports(tmp_path: Path) -> None:
+    source, output = tmp_path / "results", tmp_path / "docs" / "results"
+    source.mkdir(parents=True)
+    reranking = {"first_stage": "bm25", "dense_model": None, "cross_encoder": "cross-encoder/ms-marco-MiniLM-L-6-v2", "depth": 100, "batch_size": 32}
+    run = report(method="rerank", reranking=reranking)
+    query = {"method": "rerank", "dataset": "fiqa", "model": None, "generated_at": run["generated_at"], "query_count": 1, "reranking": reranking, "queries": [{"query_id": "q", "query": "test", "relevant_document_count": 1, "ndcg_at_10": .3, "mrr_at_10": .2, "recall_at_10": .3, "recall_at_100": .4, "first_relevant_rank": 2}]}
+    (source / "fiqa_rerank-bm25.json").write_text(json.dumps(run))
+    (source / "fiqa_rerank-bm25_perquery.json").write_text(json.dumps(query))
+    exported, skipped, _ = export_results(source, output, "test")
+    per_exported, per_skipped = export_per_query_results(source, output)
+    assert [path.name for path in exported] == ["fiqa_rerank-bm25.json"]
+    assert skipped == []
+    assert [path.name for path in per_exported] == ["fiqa_rerank-bm25_perquery.json"]
+    assert per_skipped == []

@@ -9,7 +9,7 @@ function modelShortName(model: string | null): string | null {
   return null;
 }
 
-export function evaluationLabel(run: Pick<EvaluationRun, 'method' | 'model'>): string {
+export function evaluationLabel(run: Pick<EvaluationRun, 'method' | 'model' | 'reranking'>): string {
   if (run.method === 'tfidf') return 'TF-IDF';
   if (run.method === 'bm25') return 'BM25';
 
@@ -17,6 +17,11 @@ export function evaluationLabel(run: Pick<EvaluationRun, 'method' | 'model'>): s
   if (run.method === 'sbert' && model) return model;
   if (run.method === 'hybrid' && model) return `Hybrid (${model})`;
   if (run.method === 'hybrid-tuned' && model) return `Hybrid-tuned (${model})`;
+  if (run.method === 'rerank') {
+    if (run.reranking?.first_stage === 'bm25') return 'Rerank (BM25)';
+    if (run.reranking?.first_stage === 'sbert' && model === 'MPNet') return 'Rerank (MPNet)';
+    if (run.reranking?.first_stage === 'hybrid' && model === 'MPNet') return 'Rerank (Hybrid MPNet)';
+  }
   return run.model ?? run.method;
 }
 
@@ -25,7 +30,7 @@ export function selectedBm25Weight(run: Pick<EvaluationRun, 'method' | 'fusion'>
   return typeof weight === 'number' && Number.isFinite(weight) ? weight : null;
 }
 
-export function evaluationMethodOrder(run: Pick<EvaluationRun, 'method' | 'model'>): number {
+export function evaluationMethodOrder(run: Pick<EvaluationRun, 'method' | 'model' | 'reranking'>): number {
   if (run.method === 'tfidf') return 0;
   if (run.method === 'bm25') return 1;
 
@@ -36,7 +41,10 @@ export function evaluationMethodOrder(run: Pick<EvaluationRun, 'method' | 'model
   if (run.method === 'hybrid' && model === 'MPNet') return 5;
   if (run.method === 'hybrid-tuned' && model === 'MiniLM') return 6;
   if (run.method === 'hybrid-tuned' && model === 'MPNet') return 7;
-  return 8;
+  if (run.method === 'rerank' && run.reranking?.first_stage === 'bm25') return 8;
+  if (run.method === 'rerank' && run.reranking?.first_stage === 'sbert' && model === 'MPNet') return 9;
+  if (run.method === 'rerank' && run.reranking?.first_stage === 'hybrid' && model === 'MPNet') return 10;
+  return 11;
 }
 
 export function isBestMetric(

@@ -90,6 +90,20 @@ describe('EvaluationView', () => {
     ]);
   });
 
+  it('renders unmeasured tuned latency as a dash without a best-value star', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(JSON.stringify({ runs: [
+      run({ method: 'bm25', average_query_latency_ms: 5 }),
+      run({ method: 'hybrid-tuned', model: 'sentence-transformers/all-MiniLM-L6-v2', fusion: { w_bm25: .7 }, average_query_latency_ms: null }),
+    ], hardware_note: 'test', generated_at: 'now' })))));
+    render(<EvaluationView />);
+    const section = (await screen.findByRole('heading', { name: 'SciFact' })).closest('section');
+    if (!section) throw new Error('SciFact section was not rendered.');
+    expect(within(section).getByText('—')).toBeInTheDocument();
+    expect(screen.getByText('— : not measured end to end')).toBeInTheDocument();
+    const tunedRow = within(section).getAllByText('Hybrid-tuned (MiniLM)')[0]?.closest('tr');
+    expect(tunedRow?.querySelectorAll('td')[6]?.querySelector('[aria-label="Best value"]')).toBeNull();
+  });
+
   it('shows the export command for a missing snapshot', async () => {
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(JSON.stringify({ error: { code: 'evaluation_snapshot_missing', message: 'Evaluation snapshot is not available.', details: { build_command: 'python -m scripts.export_results' } } }), { status: 404 }))));
     render(<EvaluationView />);

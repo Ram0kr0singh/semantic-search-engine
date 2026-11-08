@@ -66,7 +66,7 @@
       "recall_at_5": 0.39335929416947935
     },
     {
-      "average_query_latency_ms": 0.4190086419839645,
+      "average_query_latency_ms": null,
       "dataset": "fiqa",
       "fusion": {
         "components": [
@@ -94,8 +94,10 @@
         "selection_rule": "highest mean nDCG@10; ties: closest to 0.5, then smaller weight",
         "w_bm25": 0.1
       },
+      "fusion_only_latency_ms": 0.4190086419839645,
       "generated_at": "2026-11-07T19:11:45.464385+00:00",
       "index_build_seconds": 55.54894090000016,
+      "latency_note": "fusion of saved component rankings only; not an end-to-end query time",
       "method": "hybrid-tuned",
       "model": "sentence-transformers/all-MiniLM-L6-v2",
       "mrr_at_10": 0.4520220948461689,
@@ -107,7 +109,7 @@
       "recall_at_5": 0.3846139200305867
     },
     {
-      "average_query_latency_ms": 0.4281566358079062,
+      "average_query_latency_ms": null,
       "dataset": "fiqa",
       "fusion": {
         "components": [
@@ -135,8 +137,10 @@
         "selection_rule": "highest mean nDCG@10; ties: closest to 0.5, then smaller weight",
         "w_bm25": 0.0
       },
+      "fusion_only_latency_ms": 0.4281566358079062,
       "generated_at": "2026-11-07T19:20:27.299117+00:00",
       "index_build_seconds": 427.8563623999944,
+      "latency_note": "fusion of saved component rankings only; not an end-to-end query time",
       "method": "hybrid-tuned",
       "model": "sentence-transformers/all-mpnet-base-v2",
       "mrr_at_10": 0.5822904418969234,
@@ -256,7 +260,7 @@
       "recall_at_5": 0.7533333333333333
     },
     {
-      "average_query_latency_ms": 0.12751733336093216,
+      "average_query_latency_ms": null,
       "dataset": "scifact",
       "fusion": {
         "components": [
@@ -284,8 +288,10 @@
         "selection_rule": "highest mean nDCG@10; ties: closest to 0.5, then smaller weight",
         "w_bm25": 0.7
       },
+      "fusion_only_latency_ms": 0.12751733336093216,
       "generated_at": "2026-11-07T19:07:30.055894+00:00",
       "index_build_seconds": 7.225645800004713,
+      "latency_note": "fusion of saved component rankings only; not an end-to-end query time",
       "method": "hybrid-tuned",
       "model": "sentence-transformers/all-MiniLM-L6-v2",
       "mrr_at_10": 0.6624589947089947,
@@ -297,7 +303,7 @@
       "recall_at_5": 0.7601666666666667
     },
     {
-      "average_query_latency_ms": 0.1319599999987986,
+      "average_query_latency_ms": null,
       "dataset": "scifact",
       "fusion": {
         "components": [
@@ -325,8 +331,10 @@
         "selection_rule": "highest mean nDCG@10; ties: closest to 0.5, then smaller weight",
         "w_bm25": 0.6
       },
+      "fusion_only_latency_ms": 0.1319599999987986,
       "generated_at": "2026-11-07T19:09:23.425435+00:00",
       "index_build_seconds": 62.726032299993676,
+      "latency_note": "fusion of saved component rankings only; not an end-to-end query time",
       "method": "hybrid-tuned",
       "model": "sentence-transformers/all-mpnet-base-v2",
       "mrr_at_10": 0.6534603174603174,

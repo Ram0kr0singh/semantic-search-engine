@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { api, type EvaluationResponse, type EvaluationRun } from '../api';
 import { evaluationLabel, evaluationMethodOrder, isBestMetric, selectedBm25Weight, type MetricDirection } from '../evaluation';
 
-const columns: Array<[keyof EvaluationRun, string, (value: number) => string, MetricDirection]> = [
-  ['ndcg_at_10', 'nDCG@10', v => v.toFixed(4), 'higher'], ['mrr_at_10', 'MRR@10', v => v.toFixed(4), 'higher'], ['recall_at_1', 'Recall@1', v => v.toFixed(4), 'higher'], ['recall_at_10', 'Recall@10', v => v.toFixed(4), 'higher'], ['recall_at_100', 'Recall@100', v => v.toFixed(4), 'higher'], ['index_build_seconds', 'Index build', v => `${v.toFixed(2)} s`, 'lower'], ['average_query_latency_ms', 'Query latency', v => `${v.toFixed(2)} ms`, 'lower'],
+const columns: Array<[keyof EvaluationRun, string, (value: number | null) => string, MetricDirection]> = [
+  ['ndcg_at_10', 'nDCG@10', v => (v ?? 0).toFixed(4), 'higher'], ['mrr_at_10', 'MRR@10', v => (v ?? 0).toFixed(4), 'higher'], ['recall_at_1', 'Recall@1', v => (v ?? 0).toFixed(4), 'higher'], ['recall_at_10', 'Recall@10', v => (v ?? 0).toFixed(4), 'higher'], ['recall_at_100', 'Recall@100', v => (v ?? 0).toFixed(4), 'higher'], ['index_build_seconds', 'Index build', v => `${(v ?? 0).toFixed(2)} s`, 'lower'], ['average_query_latency_ms', 'Query latency', v => v === null ? '—' : `${v.toFixed(2)} ms`, 'lower'],
 ];
 const datasetNames: Record<string, string> = { scifact: 'SciFact', fiqa: 'FiQA' };
 function RunLabel({ run }: { run: EvaluationRun }) {
@@ -23,7 +23,7 @@ export function EvaluationView() {
     const zeroWeightRuns = runs.filter(run => selectedBm25Weight(run) === 0);
     return <section key={dataset} className="bg-white border border-slate-200 rounded-xl p-4 sm:p-6 space-y-4"><h2 className="text-lg font-bold">{datasetNames[dataset] ?? dataset}</h2><p className="text-xs text-slate-500">{runs[0].query_count.toLocaleString()} queries</p><div className="overflow-x-auto"><table className="w-full text-xs text-left"><thead><tr><th className="p-2">Method / model</th>{columns.map(([, title]) => <th key={title} className="p-2 whitespace-nowrap">{title}</th>)}</tr></thead><tbody>{runs.map(run => <tr key={evaluationLabel(run)} className="border-t border-slate-100"><th className="p-2 font-medium" title={run.model ?? undefined}><RunLabel run={run} /></th>{columns.map(([key,, format, direction]) => {
       const best = isBestMetric(run, runs, key, direction);
-      return <td key={String(key)} className={`p-2 ${best ? 'font-bold' : ''}`}>{best && <span aria-label="Best value">★ </span>}{format(Number(run[key]))}</td>;
+      return <td key={String(key)} className={`p-2 ${best ? 'font-bold' : ''}`}>{best && <span aria-label="Best value">★ </span>}{format(typeof run[key] === 'number' ? run[key] : null)}</td>;
     })}</tr>)}</tbody></table></div>{zeroWeightRuns.map(run => <p key={evaluationLabel(run)} className="text-xs text-slate-500">The dev-selected BM25 weight for {evaluationLabel(run)} is 0, so it is identical to the dense retriever.</p>)}<Chart runs={runs} /></section>;
-  })}<p className="text-xs text-slate-500">Stars mark the highest raw value in a column. They do not indicate a statistically significant difference; see docs/analysis/analysis.md.</p><p className="text-xs text-slate-500">Lower is better for index build time and query latency. TF-IDF runs on the CPU; Sentence-BERT query time includes embedding the query on the GPU.</p></section>;
+  })}<p className="text-xs text-slate-500">— : not measured end to end</p><p className="text-xs text-slate-500">Stars mark the highest raw value in a column. They do not indicate a statistically significant difference; see docs/analysis/analysis.md.</p><p className="text-xs text-slate-500">Lower is better for index build time and query latency. TF-IDF runs on the CPU; Sentence-BERT query time includes embedding the query on the GPU.</p></section>;
 }

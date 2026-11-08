@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import shutil
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +15,7 @@ PER_QUERY_FIELDS = (
     "recall_at_10", "recall_at_100", "first_relevant_rank",
 )
 TUNED_FUSION_FIELDS = ("method", "k_rrf", "depth", "components", "w_bm25", "grid", "selection_rule", "development_split", "development_query_count")
+RERANK_FIELDS = ("first_stage", "dense_model", "cross_encoder", "depth", "batch_size")
 
 
 def valid_tuned_fusion(fusion: object) -> bool:
@@ -36,6 +36,11 @@ def valid_tuned_fusion(fusion: object) -> bool:
     )
 
 
+def valid_reranking(reranking: object) -> bool:
+    """Validate the fixed cross-encoder reranking protocol metadata."""
+    return isinstance(reranking, dict) and all(field in reranking for field in RERANK_FIELDS) and reranking["first_stage"] in {"bm25", "sbert", "hybrid"} and reranking["cross_encoder"] == "cross-encoder/ms-marco-MiniLM-L-6-v2" and reranking["depth"] == 100 and reranking["batch_size"] == 32 and (reranking["first_stage"] == "bm25" or isinstance(reranking["dense_model"], str))
+
+
 def validate_run(payload: object, filename: str) -> tuple[dict[str, Any] | None, str | None]:
     if not isinstance(payload, dict):
         return None, "JSON root is not an object"
@@ -53,8 +58,12 @@ def validate_run(payload: object, filename: str) -> tuple[dict[str, Any] | None,
         return None, "hybrid report has missing or unsupported fusion settings"
     if payload["method"] == "hybrid-tuned" and not valid_tuned_fusion(payload.get("fusion")):
         return None, "tuned hybrid report has missing fusion settings"
-    for field in ("query_count", *METRICS, *TIMINGS):
+    if payload["method"] == "rerank" and not valid_reranking(payload.get("reranking")):
+        return None, "rerank report has missing or unsupported settings"
+    for field in ("query_count", *METRICS, "index_build_seconds", "average_query_latency_ms"):
         value = payload[field]
+        if field == "average_query_latency_ms" and value is None and payload["method"] == "hybrid-tuned":
+            continue
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             return None, f"{field} is not numeric"
         if field in METRICS and not 0 <= value <= 1:
@@ -64,6 +73,18 @@ def validate_run(payload: object, filename: str) -> tuple[dict[str, Any] | None,
     if payload["query_count"] < 0:
         return None, "query_count must be non-negative"
     return payload, None
+
+
+def exported_run(run: dict[str, Any]) -> dict[str, Any]:
+    """Return a UI-safe snapshot without changing the raw benchmark report."""
+    exported = dict(run)
+    if exported["method"] == "hybrid-tuned":
+        latency = exported["average_query_latency_ms"]
+        if isinstance(latency, (int, float)) and not isinstance(latency, bool):
+            exported["fusion_only_latency_ms"] = latency
+        exported["average_query_latency_ms"] = None
+        exported["latency_note"] = "fusion of saved component rankings only; not an end-to-end query time"
+    return exported
 
 
 def validate_per_query_run(payload: object, filename: str) -> tuple[dict[str, Any] | None, str | None]:
@@ -83,6 +104,8 @@ def validate_per_query_run(payload: object, filename: str) -> tuple[dict[str, An
         return None, "hybrid report has missing or unsupported fusion settings"
     if payload["method"] == "hybrid-tuned" and not valid_tuned_fusion(payload.get("fusion")):
         return None, "tuned hybrid report has missing fusion settings"
+    if payload["method"] == "rerank" and not valid_reranking(payload.get("reranking")):
+        return None, "rerank report has missing or unsupported settings"
     if isinstance(payload["query_count"], bool) or not isinstance(payload["query_count"], int) or payload["query_count"] < 0:
         return None, "query_count must be a non-negative integer"
     queries = payload["queries"]
@@ -129,14 +152,17 @@ def export_results(results_dir: Path, output_dir: Path, hardware_note: str) -> t
             skipped.append((source, reason)); continue
         runs.append((source, run))
     runs.sort(key=lambda item: (str(item[1]["dataset"]), str(item[1]["method"]), str(item[1].get("model") or "")))
-    exported = []
-    for source, _ in runs:
+    destinations: list[Path] = []
+    exported_runs: list[dict[str, Any]] = []
+    for source, run in runs:
         destination = output_dir / source.name
-        shutil.copyfile(source, destination)
-        exported.append(destination)
-    summary = {"runs": [run for _, run in runs], "hardware_note": hardware_note, "generated_at": max((str(run["generated_at"]) for _, run in runs), default="")}
+        snapshot_run = exported_run(run)
+        destination.write_text(json.dumps(snapshot_run, indent=2) + "\n", encoding="utf-8")
+        destinations.append(destination)
+        exported_runs.append(snapshot_run)
+    summary = {"runs": exported_runs, "hardware_note": hardware_note, "generated_at": max((str(run["generated_at"]) for _, run in runs), default="")}
     (output_dir / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return exported, skipped, summary
+    return destinations, skipped, summary
 
 
 def export_per_query_results(results_dir: Path, output_dir: Path) -> tuple[list[Path], list[tuple[Path, str]]]:
@@ -154,7 +180,7 @@ def export_per_query_results(results_dir: Path, output_dir: Path) -> tuple[list[
         if reason:
             skipped.append((source, reason)); continue
         destination = destination_dir / source.name
-        shutil.copyfile(source, destination)
+        destination.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
         exported.append(destination)
     return exported, skipped
 
@@ -163,7 +189,10 @@ def markdown(summary: dict[str, Any]) -> str:
     lines = ["| Dataset | Method / model | nDCG@10 | MRR@10 | Recall@1 | Recall@10 | Recall@100 | Index build (s) | Query latency (ms) |", "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"]
     for run in summary["runs"]:
         label = {"tfidf": "TF-IDF", "bm25": "BM25"}.get(run["method"], run.get("model") or run["method"])
-        lines.append(f"| {run['dataset']} | {label} | {run['ndcg_at_10']:.4f} | {run['mrr_at_10']:.4f} | {run['recall_at_1']:.4f} | {run['recall_at_10']:.4f} | {run['recall_at_100']:.4f} | {run['index_build_seconds']:.2f} | {run['average_query_latency_ms']:.2f} |")
+        if run["method"] == "rerank":
+            label = f"Rerank ({run['reranking']['first_stage']})"
+        latency = "—" if run["average_query_latency_ms"] is None else f"{run['average_query_latency_ms']:.2f}"
+        lines.append(f"| {run['dataset']} | {label} | {run['ndcg_at_10']:.4f} | {run['mrr_at_10']:.4f} | {run['recall_at_1']:.4f} | {run['recall_at_10']:.4f} | {run['recall_at_100']:.4f} | {run['index_build_seconds']:.2f} | {latency} |")
     return "\n".join(lines)
 
 

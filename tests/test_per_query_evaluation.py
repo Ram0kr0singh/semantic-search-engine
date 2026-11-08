@@ -49,3 +49,16 @@ def test_save_per_query_flag_leaves_default_outputs_unchanged(tmp_path: Path, mo
         assert after[field] == before[field]
     per_query = json.loads((results / "scifact_tfidf_perquery.json").read_text())
     assert len(per_query["queries"]) == 2
+
+
+def test_rerank_cli_registration_and_metadata(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    dataset = fixture_dataset()
+    monkeypatch.setattr(evaluate_script, "load_dataset", lambda *_: dataset)
+    monkeypatch.setattr(evaluate_script, "build_retriever", lambda *_: FixedRetriever())
+    results = tmp_path / "results"
+    monkeypatch.setattr(sys, "argv", ["evaluate", "--dataset", "scifact", "--method", "rerank", "--first-stage", "bm25", "--results-dir", str(results), "--save-per-query"])
+    evaluate_script.main()
+    payload = json.loads((results / "scifact_rerank-bm25.json").read_text())
+    assert payload["method"] == "rerank"
+    assert payload["reranking"] == {"first_stage": "bm25", "dense_model": None, "cross_encoder": "cross-encoder/ms-marco-MiniLM-L-6-v2", "depth": 100, "batch_size": 32}
+    assert (results / "scifact_rerank-bm25_perquery.json").is_file()

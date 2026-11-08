@@ -139,3 +139,23 @@ def test_evaluation_returns_valid_snapshot(client: TestClient, tmp_path, monkeyp
 
     assert response.status_code == 200
     assert response.json() == payload
+
+
+@pytest.mark.parametrize("latency", [12.5, None])
+def test_evaluation_accepts_present_or_null_latency(client: TestClient, tmp_path, monkeypatch, latency) -> None:
+    snapshot = tmp_path / "summary.json"
+    run = {"method": "hybrid-tuned", "dataset": "scifact", "model": "sentence-transformers/all-MiniLM-L6-v2", "generated_at": "now", "query_count": 1, "recall_at_1": .1, "recall_at_5": .2, "recall_at_10": .3, "recall_at_100": .4, "mrr_at_10": .2, "ndcg_at_10": .3, "index_build_seconds": 1, "average_query_latency_ms": latency, "fusion": {"method": "weighted-rrf", "w_bm25": .7}}
+    snapshot.write_text(json.dumps({"runs": [run], "hardware_note": "test", "generated_at": "now"}))
+    monkeypatch.setenv("EVALUATION_SNAPSHOT_PATH", str(snapshot))
+    response = client.get("/evaluation")
+    assert response.status_code == 200
+    assert response.json()["runs"][0]["average_query_latency_ms"] == latency
+    assert response.json()["runs"][0]["fusion"]["w_bm25"] == .7
+
+
+def test_evaluation_rejects_malformed_latency(client: TestClient, tmp_path, monkeypatch) -> None:
+    snapshot = tmp_path / "summary.json"
+    run = {"method": "bm25", "dataset": "scifact", "generated_at": "now", "query_count": 1, "recall_at_1": .1, "recall_at_5": .2, "recall_at_10": .3, "recall_at_100": .4, "mrr_at_10": .2, "ndcg_at_10": .3, "index_build_seconds": 1, "average_query_latency_ms": "bad"}
+    snapshot.write_text(json.dumps({"runs": [run], "hardware_note": "test", "generated_at": "now"}))
+    monkeypatch.setenv("EVALUATION_SNAPSHOT_PATH", str(snapshot))
+    assert client.get("/evaluation").status_code == 500

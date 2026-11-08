@@ -6,7 +6,7 @@ __pycache__/
 .mypy_cache/
 .coverage
 htmlcov/
-.test-tmp*/
+.test-*/
 
 # Environments and configuration
 .venv/
