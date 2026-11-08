@@ -33,7 +33,7 @@ def build_retriever(method: str, model_name: str) -> Retriever:
 
 def result_filename(dataset: str, method: str, model_name: str | None = None) -> str:
     """Return a collision-resistant, filesystem-safe JSON report filename."""
-    if method in {"sbert", "hybrid"}:
+    if method in {"sbert", "hybrid", "hybrid-tuned"}:
         if not model_name:
             raise ValueError("A dense or hybrid result filename requires a model name.")
         model_slug = re.sub(r"[^A-Za-z0-9._-]+", "-", model_name.rsplit("/", 1)[-1]).strip("-._").lower()

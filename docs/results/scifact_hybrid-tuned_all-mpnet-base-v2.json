@@ -1,0 +1,41 @@
+{
+  "method": "hybrid-tuned",
+  "dataset": "scifact",
+  "model": "sentence-transformers/all-mpnet-base-v2",
+  "generated_at": "2026-11-07T19:09:23.425435+00:00",
+  "query_count": 300,
+  "recall_at_1": 0.5338333333333334,
+  "recall_at_5": 0.7646111111111111,
+  "recall_at_10": 0.8270555555555555,
+  "recall_at_100": 0.9533333333333334,
+  "mrr_at_10": 0.6534603174603174,
+  "ndcg_at_10": 0.6909212331468819,
+  "index_build_seconds": 62.726032299993676,
+  "average_query_latency_ms": 0.1319599999987986,
+  "fusion": {
+    "method": "weighted-rrf",
+    "k_rrf": 60,
+    "depth": 100,
+    "components": [
+      "bm25",
+      "sbert"
+    ],
+    "w_bm25": 0.6,
+    "grid": [
+      0.0,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      1.0
+    ],
+    "selection_rule": "highest mean nDCG@10; ties: closest to 0.5, then smaller weight",
+    "development_split": "train",
+    "development_query_count": 809
+  }
+}

@@ -15,6 +15,25 @@ PER_QUERY_FIELDS = (
     "query_id", "query", "relevant_document_count", "ndcg_at_10", "mrr_at_10",
     "recall_at_10", "recall_at_100", "first_relevant_rank",
 )
+TUNED_FUSION_FIELDS = ("method", "k_rrf", "depth", "components", "w_bm25", "grid", "selection_rule", "development_split", "development_query_count")
+
+
+def valid_tuned_fusion(fusion: object) -> bool:
+    """Validate the protocol fields that identify a weighted-RRF run."""
+    return (
+        isinstance(fusion, dict)
+        and all(field in fusion for field in TUNED_FUSION_FIELDS)
+        and fusion["method"] == "weighted-rrf"
+        and fusion["k_rrf"] == 60
+        and fusion["depth"] == 100
+        and fusion["components"] == ["bm25", "sbert"]
+        and isinstance(fusion["w_bm25"], (int, float)) and not isinstance(fusion["w_bm25"], bool)
+        and 0 <= fusion["w_bm25"] <= 1
+        and fusion["grid"] == [index / 10 for index in range(11)]
+        and isinstance(fusion["selection_rule"], str)
+        and isinstance(fusion["development_split"], str)
+        and isinstance(fusion["development_query_count"], int)
+    )
 
 
 def validate_run(payload: object, filename: str) -> tuple[dict[str, Any] | None, str | None]:
@@ -28,10 +47,12 @@ def validate_run(payload: object, filename: str) -> tuple[dict[str, Any] | None,
     if not isinstance(payload["dataset"], str) or not payload["dataset"].strip() or payload["dataset"].startswith("BEIR "):
         return None, "missing or stale dataset identity"
     # TF-IDF deliberately has a null model; dense and hybrid reports identify their model.
-    if payload["method"] in {"sbert", "hybrid"} and (not isinstance(payload.get("model"), str) or not payload["model"].strip()):
+    if payload["method"] in {"sbert", "hybrid", "hybrid-tuned"} and (not isinstance(payload.get("model"), str) or not payload["model"].strip()):
         return None, "stale SBERT report without a model identity"
     if payload["method"] == "hybrid" and payload.get("fusion") != {"method": "rrf", "k_rrf": 60, "depth": 100, "components": ["bm25", "sbert"]}:
         return None, "hybrid report has missing or unsupported fusion settings"
+    if payload["method"] == "hybrid-tuned" and not valid_tuned_fusion(payload.get("fusion")):
+        return None, "tuned hybrid report has missing fusion settings"
     for field in ("query_count", *METRICS, *TIMINGS):
         value = payload[field]
         if isinstance(value, bool) or not isinstance(value, (int, float)):
@@ -56,10 +77,12 @@ def validate_per_query_run(payload: object, filename: str) -> tuple[dict[str, An
         return None, "missing method identity"
     if not isinstance(payload["dataset"], str) or not payload["dataset"].strip() or payload["dataset"].startswith("BEIR "):
         return None, "missing or stale dataset identity"
-    if payload["method"] in {"sbert", "hybrid"} and (not isinstance(payload.get("model"), str) or not payload["model"].strip()):
+    if payload["method"] in {"sbert", "hybrid", "hybrid-tuned"} and (not isinstance(payload.get("model"), str) or not payload["model"].strip()):
         return None, "stale SBERT report without a model identity"
     if payload["method"] == "hybrid" and payload.get("fusion") != {"method": "rrf", "k_rrf": 60, "depth": 100, "components": ["bm25", "sbert"]}:
         return None, "hybrid report has missing or unsupported fusion settings"
+    if payload["method"] == "hybrid-tuned" and not valid_tuned_fusion(payload.get("fusion")):
+        return None, "tuned hybrid report has missing fusion settings"
     if isinstance(payload["query_count"], bool) or not isinstance(payload["query_count"], int) or payload["query_count"] < 0:
         return None, "query_count must be a non-negative integer"
     queries = payload["queries"]

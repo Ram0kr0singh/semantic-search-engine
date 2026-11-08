@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-07T18:31:47.897806+00:00",
+  "generated_at": "2026-11-07T19:20:27.299117+00:00",
   "hardware_note": "RTX 4060 Laptop GPU, single run per configuration; timings vary run to run",
   "runs": [
     {
@@ -64,6 +64,88 @@
       "recall_at_10": 0.48818588390347645,
       "recall_at_100": 0.7982889495620976,
       "recall_at_5": 0.39335929416947935
+    },
+    {
+      "average_query_latency_ms": 0.4190086419839645,
+      "dataset": "fiqa",
+      "fusion": {
+        "components": [
+          "bm25",
+          "sbert"
+        ],
+        "depth": 100,
+        "development_query_count": 500,
+        "development_split": "dev (Hugging Face validation)",
+        "grid": [
+          0.0,
+          0.1,
+          0.2,
+          0.3,
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.9,
+          1.0
+        ],
+        "k_rrf": 60,
+        "method": "weighted-rrf",
+        "selection_rule": "highest mean nDCG@10; ties: closest to 0.5, then smaller weight",
+        "w_bm25": 0.1
+      },
+      "generated_at": "2026-11-07T19:11:45.464385+00:00",
+      "index_build_seconds": 55.54894090000016,
+      "method": "hybrid-tuned",
+      "model": "sentence-transformers/all-MiniLM-L6-v2",
+      "mrr_at_10": 0.4520220948461689,
+      "ndcg_at_10": 0.37476149228344463,
+      "query_count": 648,
+      "recall_at_1": 0.17394727186393855,
+      "recall_at_10": 0.4493876279755909,
+      "recall_at_100": 0.7060569574458463,
+      "recall_at_5": 0.3846139200305867
+    },
+    {
+      "average_query_latency_ms": 0.4281566358079062,
+      "dataset": "fiqa",
+      "fusion": {
+        "components": [
+          "bm25",
+          "sbert"
+        ],
+        "depth": 100,
+        "development_query_count": 500,
+        "development_split": "dev (Hugging Face validation)",
+        "grid": [
+          0.0,
+          0.1,
+          0.2,
+          0.3,
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.9,
+          1.0
+        ],
+        "k_rrf": 60,
+        "method": "weighted-rrf",
+        "selection_rule": "highest mean nDCG@10; ties: closest to 0.5, then smaller weight",
+        "w_bm25": 0.0
+      },
+      "generated_at": "2026-11-07T19:20:27.299117+00:00",
+      "index_build_seconds": 427.8563623999944,
+      "method": "hybrid-tuned",
+      "model": "sentence-transformers/all-mpnet-base-v2",
+      "mrr_at_10": 0.5822904418969234,
+      "ndcg_at_10": 0.499632541063815,
+      "query_count": 648,
+      "recall_at_1": 0.24400348879515546,
+      "recall_at_10": 0.5811245124902532,
+      "recall_at_100": 0.8196917066130028,
+      "recall_at_5": 0.4923984066345178
     },
     {
       "average_query_latency_ms": 15.282840895249846,
@@ -172,6 +254,88 @@
       "recall_at_10": 0.820388888888889,
       "recall_at_100": 0.96,
       "recall_at_5": 0.7533333333333333
+    },
+    {
+      "average_query_latency_ms": 0.12751733336093216,
+      "dataset": "scifact",
+      "fusion": {
+        "components": [
+          "bm25",
+          "sbert"
+        ],
+        "depth": 100,
+        "development_query_count": 809,
+        "development_split": "train",
+        "grid": [
+          0.0,
+          0.1,
+          0.2,
+          0.3,
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.9,
+          1.0
+        ],
+        "k_rrf": 60,
+        "method": "weighted-rrf",
+        "selection_rule": "highest mean nDCG@10; ties: closest to 0.5, then smaller weight",
+        "w_bm25": 0.7
+      },
+      "generated_at": "2026-11-07T19:07:30.055894+00:00",
+      "index_build_seconds": 7.225645800004713,
+      "method": "hybrid-tuned",
+      "model": "sentence-transformers/all-MiniLM-L6-v2",
+      "mrr_at_10": 0.6624589947089947,
+      "ndcg_at_10": 0.6955581364764685,
+      "query_count": 300,
+      "recall_at_1": 0.548,
+      "recall_at_10": 0.8218888888888889,
+      "recall_at_100": 0.9153333333333334,
+      "recall_at_5": 0.7601666666666667
+    },
+    {
+      "average_query_latency_ms": 0.1319599999987986,
+      "dataset": "scifact",
+      "fusion": {
+        "components": [
+          "bm25",
+          "sbert"
+        ],
+        "depth": 100,
+        "development_query_count": 809,
+        "development_split": "train",
+        "grid": [
+          0.0,
+          0.1,
+          0.2,
+          0.3,
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.9,
+          1.0
+        ],
+        "k_rrf": 60,
+        "method": "weighted-rrf",
+        "selection_rule": "highest mean nDCG@10; ties: closest to 0.5, then smaller weight",
+        "w_bm25": 0.6
+      },
+      "generated_at": "2026-11-07T19:09:23.425435+00:00",
+      "index_build_seconds": 62.726032299993676,
+      "method": "hybrid-tuned",
+      "model": "sentence-transformers/all-mpnet-base-v2",
+      "mrr_at_10": 0.6534603174603174,
+      "ndcg_at_10": 0.6909212331468819,
+      "query_count": 300,
+      "recall_at_1": 0.5338333333333334,
+      "recall_at_10": 0.8270555555555555,
+      "recall_at_100": 0.9533333333333334,
+      "recall_at_5": 0.7646111111111111
     },
     {
       "average_query_latency_ms": 5.573333666252438,

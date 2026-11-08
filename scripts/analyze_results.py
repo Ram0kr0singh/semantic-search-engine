@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Sequence
@@ -19,8 +20,8 @@ def method_label(payload: dict[str, Any]) -> str:
     if payload["method"] in {"bm25", "tfidf"}:
         return {"bm25": "BM25", "tfidf": "TF-IDF"}[payload["method"]]
     model = str(payload.get("model", "")).lower()
-    prefix = "Hybrid (" if payload["method"] == "hybrid" else ""
-    suffix = ")" if payload["method"] == "hybrid" else ""
+    prefix = "Hybrid (" if payload["method"] == "hybrid" else "Hybrid-tuned (" if payload["method"] == "hybrid-tuned" else ""
+    suffix = ")" if payload["method"] in {"hybrid", "hybrid-tuned"} else ""
     if "minilm" in model:
         return f"{prefix}MiniLM{suffix}"
     if "mpnet" in model:
@@ -121,28 +122,52 @@ def comparison_pairs(methods: dict[str, object]) -> tuple[tuple[str, str], ...]:
     return tuple(pairs)
 
 
-def analysis(runs: dict[str, dict[str, dict[str, dict[str, Any]]]]) -> dict[str, Any]:
+def tuned_comparison_pairs(methods: dict[str, object]) -> tuple[tuple[str, str], ...]:
+    """Return the separate, pre-specified tuned-hybrid comparison family."""
+    pairs = []
+    for dense in ("MiniLM", "MPNet"):
+        tuned, hybrid = f"Hybrid-tuned ({dense})", f"Hybrid ({dense})"
+        if tuned in methods:
+            pairs.extend(((tuned, hybrid), (tuned, dense), (tuned, "BM25")))
+    return tuple(pairs)
+
+
+def bootstrap_rng(dataset: str, metric: str, method_a: str, method_b: str) -> np.random.Generator:
+    """Make every comparison reproducible regardless of comparison ordering."""
+    material = f"20261107|{dataset}|{metric}|{method_a}|{method_b}".encode()
+    seed = int.from_bytes(hashlib.sha256(material).digest()[:8], "big")
+    return np.random.default_rng(seed)
+
+
+def analysis(runs: dict[str, dict[str, dict[str, dict[str, Any]]]], tuning: dict[str, Any] | None = None) -> dict[str, Any]:
     """Build all requested comparisons, errors, and query-property breakdowns."""
     output: dict[str, Any] = {"method": {"bootstrap_resamples": 10_000, "seed": 20261107, "confidence_interval": "2.5th and 97.5th percentiles of paired bootstrap means", "p_value": "two-sided centered paired bootstrap with add-one correction: resample differences centered at their observed mean; p = (count_extreme + 1) / (resamples + 1), where count_extreme is the number of null bootstrap means with absolute value at least the observed absolute mean", "holm": "Holm-Bonferroni adjustment across the complete available comparison family separately for each metric"}, "datasets": {}}
     pending: dict[str, list[dict[str, Any]]] = {metric: [] for metric in METRICS}
-    rng = np.random.default_rng(20261107)
+    tuned_pending: dict[str, list[dict[str, Any]]] = {metric: [] for metric in METRICS}
     for dataset, methods in sorted(runs.items()):
         pairs = comparison_pairs(methods)
-        required = {method for pair in pairs for method in pair}
+        tuned_pairs = tuned_comparison_pairs(methods)
+        required = {method for pair in (*pairs, *tuned_pairs) for method in pair}
         missing = required - methods.keys()
         if missing:
             raise ValueError(f"{dataset} is missing per-query runs for: {', '.join(sorted(missing))}")
         ids = set.intersection(*(set(methods[method]) for method in required))
         if not ids:
             raise ValueError(f"{dataset} has no query IDs shared by all methods.")
-        dataset_output: dict[str, Any] = {"query_count": len(ids), "comparisons": {}, "error_analysis": {}, "breakdowns": breakdown({method: {qid: row for qid, row in rows.items() if qid in ids} for method, rows in methods.items()})}
+        dataset_output: dict[str, Any] = {"query_count": len(ids), "comparisons": {}, "tuned_hybrid_comparisons": {}, "error_analysis": {}, "breakdowns": breakdown({method: {qid: row for qid, row in rows.items() if qid in ids} for method, rows in methods.items()})}
         for metric in METRICS:
             entries = []
             for left, right in pairs:
                 differences = [methods[left][qid][metric] - methods[right][qid][metric] for qid in sorted(ids)]
-                entry = {"method_a": left, "method_b": right, "metric": metric, **paired_bootstrap(differences, rng), **win_loss_tie(differences)}
+                entry = {"method_a": left, "method_b": right, "metric": metric, **paired_bootstrap(differences, bootstrap_rng(dataset, metric, left, right)), **win_loss_tie(differences)}
                 entries.append(entry); pending[metric].append(entry)
             dataset_output["comparisons"][metric] = entries
+            tuned_entries = []
+            for left, right in tuned_pairs:
+                differences = [methods[left][qid][metric] - methods[right][qid][metric] for qid in sorted(ids)]
+                entry = {"method_a": left, "method_b": right, "metric": metric, **paired_bootstrap(differences, bootstrap_rng(dataset, metric, left, right)), **win_loss_tie(differences)}
+                tuned_entries.append(entry); tuned_pending[metric].append(entry)
+            dataset_output["tuned_hybrid_comparisons"][metric] = tuned_entries
         differences = {qid: methods["BM25"][qid]["ndcg_at_10"] - methods["MPNet"][qid]["ndcg_at_10"] for qid in ids}
         def error_entry(qid: str, margin: float) -> dict[str, Any]:
             bm25, mpnet = methods["BM25"][qid], methods["MPNet"][qid]
@@ -183,23 +208,50 @@ def analysis(runs: dict[str, dict[str, dict[str, dict[str, Any]]]]) -> dict[str,
         adjusted = holm_adjust([entry["p_value"] for entry in entries])
         for entry, p_value in zip(entries, adjusted):
             entry["holm_adjusted_p_value"] = p_value
+    for metric, entries in tuned_pending.items():
+        adjusted = holm_adjust([entry["p_value"] for entry in entries])
+        for entry, p_value in zip(entries, adjusted):
+            entry["holm_adjusted_p_value"] = p_value
+    output["tuning"] = tuning or {}
     return output
 
 
+def load_tuning(analysis_dir: Path) -> dict[str, Any]:
+    """Load optional tuning artifacts without conflating them with test runs."""
+    result: dict[str, Any] = {}
+    for path in sorted(analysis_dir.glob("tuning_*.json")):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        result[f"{payload['dataset']}:{payload['model']}"] = payload
+    return result
+
+
 def markdown(report: dict[str, Any]) -> str:
-    lines = ["# Per-query statistical analysis", "", "All values are calculated from the committed per-query snapshots. P-values use a " + report["method"]["p_value"] + ".", ""]
+    lines = ["# Per-query statistical analysis", "", "All values are calculated from the committed per-query snapshots. P-values use a " + report["method"]["p_value"] + ". Confidence intervals can differ slightly in the third decimal from the preceding report because each paired bootstrap now uses a stable comparison-specific seed.", ""]
     def format_p_value(value: float) -> str:
         return "< 0.0001" if value < 0.0001 else f"{value:.6f}"
     def format_rank(value: int | None) -> str:
         return str(value) if value is not None else "not in top 100"
     for dataset, data in report["datasets"].items():
         lines += [f"## {dataset}", "", "### Paired comparisons", ""]
-        if any(item["method_a"].startswith("Hybrid (") for entries in data["comparisons"].values() for item in entries):
-            lines += ["The available hybrid comparisons are included in the Holm correction family, so adjusted p-values for the earlier comparisons can differ from the preceding non-hybrid report.", ""]
         for metric, entries in data["comparisons"].items():
             lines += [f"#### {metric}", "", "| Comparison (A − B) | Mean difference | 95% CI | p-value | Holm p-value | A wins | B wins | Ties |", "| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |"]
             for item in entries:
                 lines.append(f"| {item['method_a']} − {item['method_b']} | {item['mean_difference']:.6f} | [{item['ci_low']:.6f}, {item['ci_high']:.6f}] | {format_p_value(item['p_value'])} | {format_p_value(item['holm_adjusted_p_value'])} | {item['wins']} | {item['losses']} | {item['ties']} |")
+            lines.append("")
+        tuned_comparisons = data.get("tuned_hybrid_comparisons", {})
+        if any(tuned_comparisons.values()):
+            lines += ["### Tuned-hybrid comparisons (separate Holm family)", "", "This separate family compares the pre-specified development-selected weighted hybrid on test queries. These adjusted p-values do not alter the earlier comparison family.", ""]
+            for metric, entries in tuned_comparisons.items():
+                lines += [f"#### {metric}", "", "| Comparison (A − B) | Mean difference | 95% CI | p-value | Holm p-value | A wins | B wins | Ties |", "| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |"]
+                for item in entries:
+                    lines.append(f"| {item['method_a']} − {item['method_b']} | {item['mean_difference']:.6f} | [{item['ci_low']:.6f}, {item['ci_high']:.6f}] | {format_p_value(item['p_value'])} | {format_p_value(item['holm_adjusted_p_value'])} | {item['wins']} | {item['losses']} | {item['ties']} |")
+                lines.append("")
+        matching_tuning = [value for value in report.get("tuning", {}).values() if value.get("dataset") == dataset]
+        if matching_tuning:
+            lines += ["### Development-selected weights", "", "The following weights were selected on the stated development split by the pre-specified highest-mean-nDCG@10 rule; the test comparisons above describe the resulting test evaluation and do not establish causation.", "", "| Model | Dev split | Dev queries | Selected BM25 weight | Dev nDCG@10 by weight |", "| --- | --- | ---: | ---: | --- |"]
+            for item in matching_tuning:
+                curve = ", ".join(f"{weight}: {score:.4f}" for weight, score in item["dev_ndcg_at_10"].items())
+                lines.append(f"| {item['model']} | {item['development_split']} | {item['development_query_count']} | {item['selected_w_bm25']:.1f} | {curve} |")
             lines.append("")
         if "hybrid_mpnet_vs_components" in data:
             counts = data["hybrid_mpnet_vs_components"]
@@ -251,7 +303,7 @@ def main() -> None:
     parser.add_argument("--per-query-dir", type=Path, default=Path("docs/results/per_query"))
     parser.add_argument("--output-dir", type=Path, default=Path("docs/analysis"))
     args = parser.parse_args()
-    report = analysis(load_runs(args.per_query_dir))
+    report = analysis(load_runs(args.per_query_dir), load_tuning(args.output_dir))
     args.output_dir.mkdir(parents=True, exist_ok=True)
     (args.output_dir / "analysis.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     (args.output_dir / "analysis.md").write_text(markdown(report), encoding="utf-8")

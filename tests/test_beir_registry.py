@@ -1,6 +1,8 @@
 """Fast, offline tests for BEIR registry helpers and result naming."""
 
-from backend.app.data.beir import DATASET_REGISTRY, BeirDataset, _build_dataset, dataset_names
+import pytest
+
+from backend.app.data.beir import DATASET_REGISTRY, BeirDataset, _build_dataset, assert_disjoint_queries, dataset_names
 from scripts.evaluate import result_filename
 
 
@@ -38,3 +40,11 @@ def test_sbert_result_filename_includes_safe_model_slug() -> None:
     assert result_filename("fiqa", "sbert", "sentence-transformers/all-MiniLM-L6-v2") != result_filename(
         "fiqa", "sbert", "sentence-transformers/all-mpnet-base-v2"
     )
+
+
+def test_development_and_test_queries_must_be_disjoint() -> None:
+    development = BeirDataset({}, {"dev": "question"}, {"dev": {"1": 1}})
+    test = BeirDataset({}, {"test": "question"}, {"test": {"1": 1}})
+    assert_disjoint_queries(development, test)
+    with pytest.raises(ValueError, match="overlap"):
+        assert_disjoint_queries(development, BeirDataset({}, {"dev": "question"}, {"dev": {"1": 1}}))

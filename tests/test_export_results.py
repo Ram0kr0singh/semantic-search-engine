@@ -54,3 +54,19 @@ def test_exports_valid_per_query_report(tmp_path: Path) -> None:
     exported, skipped = export_per_query_results(source, output)
     assert [path.name for path in exported] == ["fiqa_tfidf_perquery.json"]
     assert skipped == []
+
+
+def test_exports_valid_tuned_hybrid_and_per_query_reports(tmp_path: Path) -> None:
+    source, output = tmp_path / "results", tmp_path / "docs" / "results"
+    source.mkdir(parents=True)
+    fusion = {"method": "weighted-rrf", "k_rrf": 60, "depth": 100, "components": ["bm25", "sbert"], "w_bm25": .3, "grid": [index / 10 for index in range(11)], "selection_rule": "highest nDCG", "development_split": "validation", "development_query_count": 2}
+    tuned = report(method="hybrid-tuned", model="sentence-transformers/all-MiniLM-L6-v2", fusion=fusion)
+    per_query = {"method": "hybrid-tuned", "dataset": "fiqa", "model": tuned["model"], "generated_at": tuned["generated_at"], "query_count": 1, "fusion": fusion, "queries": [{"query_id": "q", "query": "test", "relevant_document_count": 1, "ndcg_at_10": .3, "mrr_at_10": .2, "recall_at_10": .3, "recall_at_100": .4, "first_relevant_rank": 2}]}
+    (source / "fiqa_hybrid-tuned_all-minilm-l6-v2.json").write_text(json.dumps(tuned))
+    (source / "fiqa_hybrid-tuned_all-minilm-l6-v2_perquery.json").write_text(json.dumps(per_query))
+    exported, skipped, _ = export_results(source, output, "test")
+    per_exported, per_skipped = export_per_query_results(source, output)
+    assert [path.name for path in exported] == ["fiqa_hybrid-tuned_all-minilm-l6-v2.json"]
+    assert skipped == []
+    assert [path.name for path in per_exported] == ["fiqa_hybrid-tuned_all-minilm-l6-v2_perquery.json"]
+    assert per_skipped == []

@@ -33,11 +33,14 @@ class DatasetDefinition:
     name: str
     corpus_dataset: str
     qrels_dataset: str
+    development_split: str
 
 
 DATASET_REGISTRY: dict[str, DatasetDefinition] = {
-    "scifact": DatasetDefinition("scifact", "BeIR/scifact", "BeIR/scifact-qrels"),
-    "fiqa": DatasetDefinition("fiqa", "BeIR/fiqa", "BeIR/fiqa-qrels"),
+    "scifact": DatasetDefinition("scifact", "BeIR/scifact", "BeIR/scifact-qrels", "train"),
+    # BEIR calls this FiQA development data "dev"; Hugging Face exposes it
+    # under the canonical split name "validation".
+    "fiqa": DatasetDefinition("fiqa", "BeIR/fiqa", "BeIR/fiqa-qrels", "validation"),
 }
 
 
@@ -69,6 +72,35 @@ def load_dataset(name: str, data_dir: str | Path = "data") -> BeirDataset:
     qrel_rows = hf_load_dataset(definition.qrels_dataset, split="test", cache_dir=cache_dir)
 
     return _build_dataset(corpus_rows, query_rows, qrel_rows)
+
+
+def load_development_dataset(name: str, data_dir: str | Path = "data") -> BeirDataset:
+    """Load the pre-specified development qrels, separately from test data."""
+    try:
+        definition = DATASET_REGISTRY[name]
+    except KeyError as exc:
+        raise ValueError(f"Unknown dataset '{name}'. Available datasets: {', '.join(dataset_names())}") from exc
+    cache_root = Path(data_dir)
+    os.environ.setdefault("HF_HOME", str(cache_root / "huggingface-home"))
+    try:
+        from datasets import load_dataset as hf_load_dataset
+    except ImportError as exc:  # pragma: no cover
+        raise RuntimeError("datasets is required to load BEIR benchmarks. Install dependencies with `pip install -r requirements.txt`.") from exc
+    cache_dir = str(cache_root / "huggingface")
+    corpus_rows = hf_load_dataset(definition.corpus_dataset, "corpus", split="corpus", cache_dir=cache_dir)
+    query_rows = hf_load_dataset(definition.corpus_dataset, "queries", split="queries", cache_dir=cache_dir)
+    try:
+        qrel_rows = hf_load_dataset(definition.qrels_dataset, split=definition.development_split, cache_dir=cache_dir)
+    except (ValueError, KeyError) as exc:
+        raise RuntimeError(f"{name} has no usable required development split '{definition.development_split}'.") from exc
+    return _build_dataset(corpus_rows, query_rows, qrel_rows)
+
+
+def assert_disjoint_queries(development: BeirDataset, test: BeirDataset) -> None:
+    """Fail rather than tune if a development query appears in the test set."""
+    overlap = set(development.queries) & set(test.queries)
+    if overlap:
+        raise ValueError(f"Development/test query overlap: {', '.join(sorted(overlap)[:10])}")
 
 
 def _build_dataset(

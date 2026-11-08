@@ -3,7 +3,7 @@
 import pytest
 
 from backend.app.retrieval.base import Retriever, SearchResult
-from backend.app.retrieval.hybrid import HybridRetriever
+from backend.app.retrieval.hybrid import HybridRetriever, fuse_rankings
 from scripts import evaluate as evaluate_script
 
 
@@ -34,6 +34,19 @@ def test_rrf_ties_depth_order_and_identical_rankings() -> None:
     assert [item.doc_id for item in depth.search("q", 3)] == ["a", "c"]
     same = HybridRetriever([FakeRetriever({"q": ["a", "b", "c"]}), FakeRetriever({"q": ["a", "b", "c"]})])
     assert [item.doc_id for item in same.search("q", 3)] == ["a", "b", "c"]
+
+
+def test_weighted_rrf_endpoints_and_equal_weight_ranking() -> None:
+    bm25 = FakeRetriever({"q": ["a", "b"]})
+    dense = FakeRetriever({"q": ["b", "c"]})
+    rankings = [bm25.search("q", 100), dense.search("q", 100)]
+    # A candidate missing from a component contributes zero from it.
+    weighted = fuse_rankings(rankings, weights=(.2, .8), k=3)
+    assert weighted[0].score == pytest.approx(.2 / 62 + .8 / 61)
+    assert [item.doc_id for item in fuse_rankings(rankings, weights=(0, 1), k=3)] == ["b", "c", "a"]
+    assert [item.doc_id for item in fuse_rankings(rankings, weights=(1, 0), k=3)] == ["a", "b", "c"]
+    assert [item.doc_id for item in HybridRetriever([bm25, dense], weights=(.5, .5)).search("q", 3)] == [item.doc_id for item in HybridRetriever([bm25, dense]).search("q", 3)]
+    # Endpoint ordering applies only over the union of the depth-truncated lists.
 
 
 def test_indexing_and_reuse() -> None:

@@ -1,0 +1,37 @@
+{
+  "dataset": "fiqa",
+  "model": "sentence-transformers/all-MiniLM-L6-v2",
+  "development_split": "dev (Hugging Face validation)",
+  "development_query_count": 500,
+  "development_qrel_count": 1238,
+  "k_rrf": 60,
+  "depth": 100,
+  "grid": [
+    0.0,
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9,
+    1.0
+  ],
+  "dev_ndcg_at_10": {
+    "0.0": 0.3881484072466958,
+    "0.1": 0.39519088200916214,
+    "0.2": 0.38680636752451764,
+    "0.3": 0.3753821468350036,
+    "0.4": 0.3572703841175282,
+    "0.5": 0.3408094106973082,
+    "0.6": 0.3243936576644435,
+    "0.7": 0.3097135439283106,
+    "0.8": 0.2930401124848877,
+    "0.9": 0.27084756876439126,
+    "1.0": 0.23271425484431718
+  },
+  "selected_w_bm25": 0.1,
+  "selection_rule": "highest mean nDCG@10; ties: closest to 0.5, then smaller weight"
+}

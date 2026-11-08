@@ -1,0 +1,37 @@
+{
+  "dataset": "scifact",
+  "model": "sentence-transformers/all-mpnet-base-v2",
+  "development_split": "train",
+  "development_query_count": 809,
+  "development_qrel_count": 919,
+  "k_rrf": 60,
+  "depth": 100,
+  "grid": [
+    0.0,
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9,
+    1.0
+  ],
+  "dev_ndcg_at_10": {
+    "0.0": 0.6598052035352202,
+    "0.1": 0.6820926850341957,
+    "0.2": 0.6949124171761188,
+    "0.3": 0.6981256772121847,
+    "0.4": 0.6945620280391213,
+    "0.5": 0.6980530683862464,
+    "0.6": 0.7017897738948503,
+    "0.7": 0.7006200006124881,
+    "0.8": 0.6949359654343125,
+    "0.9": 0.6867236908162366,
+    "1.0": 0.6679572954094687
+  },
+  "selected_w_bm25": 0.6,
+  "selection_rule": "highest mean nDCG@10; ties: closest to 0.5, then smaller weight"
+}

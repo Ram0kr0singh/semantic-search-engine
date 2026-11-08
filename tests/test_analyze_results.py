@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
-from scripts.analyze_results import analysis, breakdown, bucket_rows, comparison_pairs, holm_adjust, markdown, paired_bootstrap, win_loss_tie
+from scripts.analyze_results import analysis, bootstrap_rng, breakdown, bucket_rows, comparison_pairs, holm_adjust, markdown, paired_bootstrap, win_loss_tie
 
 
 def generated_report() -> tuple[dict, str]:
@@ -23,6 +23,12 @@ def test_paired_bootstrap_identical_and_uniformly_better() -> None:
     identical = paired_bootstrap([0, 0, 0], np.random.default_rng(4), resamples=1000)
     assert identical["mean_difference"] == 0
     assert identical["ci_low"] <= 0 <= identical["ci_high"]
+
+
+def test_comparison_specific_bootstrap_seed_is_stable() -> None:
+    first = paired_bootstrap([.1, -.2, .3], bootstrap_rng("fiqa", "ndcg_at_10", "A", "B"), resamples=100)
+    second = paired_bootstrap([.1, -.2, .3], bootstrap_rng("fiqa", "ndcg_at_10", "A", "B"), resamples=100)
+    assert first == second
     better = paired_bootstrap([.2, .3, .4], np.random.default_rng(4), resamples=1000)
     assert better["ci_low"] > 0
 
