@@ -8,7 +8,7 @@ import { SearchControls } from './components/SearchControls';
 import { EvaluationView } from './components/EvaluationView';
 import { parseUrlState, writeUrlState, type AppView, type ResultCount, type SearchMode } from './urlState';
 
-interface SubmittedSearch { query: string; mode: SearchMode; model: string; k: ResultCount; }
+interface SubmittedSearch { query: string; mode: SearchMode; model: string; left: string; k: ResultCount; }
 function formatErrorMessage(error: unknown): string {
   return error instanceof ApiError || error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.';
 }
@@ -18,6 +18,7 @@ export default function App() {
   const [query, setQueryState] = useState(initial.query);
   const [mode, setModeState] = useState<SearchMode>(initial.mode);
   const [model, setModelState] = useState(initial.model);
+  const [left, setLeftState] = useState(initial.left ?? 'tfidf');
   const [k, setKState] = useState<ResultCount>(initial.k);
   const [view, setViewState] = useState<AppView>(initial.view ?? initial.mode);
   const [health, setHealth] = useState<Health | null>(null);
@@ -36,13 +37,14 @@ export default function App() {
     const document = await api.document(id); documentCache.current.set(id, document); return document;
   }, []);
 
-  const executeSearch = useCallback(async (nextQuery: string, nextMode: SearchMode, nextModel: string, nextK: ResultCount, history: 'push' | 'replace' | 'none' = 'push') => {
+  const executeSearch = useCallback(async (nextQuery: string, nextMode: SearchMode, nextModel: string, nextLeft: string, nextK: ResultCount, history: 'push' | 'replace' | 'none' = 'push') => {
     const trimmed = nextQuery.trim();
     if (!trimmed) return;
-    const state = { query: trimmed, mode: nextMode, model: nextModel, k: nextK, view: nextMode };
+    if (nextMode === 'compare' && nextLeft === nextModel) return;
+    const state = { query: trimmed, mode: nextMode, model: nextModel, left: nextLeft, k: nextK, view: nextMode };
     if (history !== 'none') writeUrlState(state, history === 'replace');
     const id = ++searchId.current;
-    const ids = nextMode === 'compare' ? ['tfidf', nextModel] : [nextModel];
+    const ids = nextMode === 'compare' ? [nextLeft, nextModel] : [nextModel];
     const controller = api.beginSearch();
     setSubmitted(state); setResponses({}); setErrors({}); setLoading(Object.fromEntries(ids.map((method) => [method, true])));
     await Promise.all(ids.map(async (method) => {
@@ -58,21 +60,22 @@ export default function App() {
     }));
   }, []);
 
-  const replaceUrl = useCallback((changes: Partial<SubmittedSearch>) => writeUrlState({ query, mode, model, k, view, ...changes }, true), [query, mode, model, k, view]);
+  const replaceUrl = useCallback((changes: Partial<SubmittedSearch>) => writeUrlState({ query, mode, model, left, k, view, ...changes }, true), [query, mode, model, left, k, view]);
   const setQuery = useCallback((value: string) => { setQueryState(value); replaceUrl({ query: value }); }, [replaceUrl]);
   const setModel = useCallback((value: string) => { setModelState(value); replaceUrl({ model: value }); }, [replaceUrl]);
+  const setLeft = useCallback((value: string) => { setLeftState(value); replaceUrl({ left: value }); }, [replaceUrl]);
   const setK = useCallback((value: ResultCount) => { setKState(value); replaceUrl({ k: value }); }, [replaceUrl]);
-  const handleSubmit = useCallback((event?: FormEvent, forcedQuery?: string) => { event?.preventDefault(); void executeSearch(forcedQuery ?? query, mode, model, k); }, [executeSearch, query, mode, model, k]);
+  const handleSubmit = useCallback((event?: FormEvent, forcedQuery?: string) => { event?.preventDefault(); void executeSearch(forcedQuery ?? query, mode, model, left, k); }, [executeSearch, query, mode, model, left, k]);
   const handleModeChange = useCallback((nextMode: SearchMode, nextModel: string) => {
     setModeState(nextMode); setModelState(nextModel);
-    if (query.trim()) void executeSearch(query, nextMode, nextModel, k, 'replace');
-    else writeUrlState({ query, mode: nextMode, model: nextModel, k, view: nextMode }, true);
-  }, [executeSearch, query, k]);
+    if (query.trim()) void executeSearch(query, nextMode, nextModel, left, k, 'replace');
+    else writeUrlState({ query, mode: nextMode, model: nextModel, left, k, view: nextMode }, true);
+  }, [executeSearch, query, left, k]);
   const handleViewChange = useCallback((nextView: AppView) => {
     setViewState(nextView);
     if (nextView !== 'eval') setModeState(nextView);
-    writeUrlState({ query, mode: nextView === 'search' ? 'search' : 'compare', model, k, view: nextView }, true);
-  }, [query, model, k]);
+    writeUrlState({ query, mode: nextView === 'search' ? 'search' : 'compare', model, left, k, view: nextView }, true);
+  }, [query, model, left, k]);
   const retryConnection = useCallback(async () => {
     try { const [nextHealth, nextMethods] = await Promise.all([api.health(), api.methods()]); setHealth(nextHealth); setMethods(nextMethods); setUnreachable(false); }
     catch { setUnreachable(true); }
@@ -86,7 +89,7 @@ export default function App() {
         if (ignore) return;
         setHealth(nextHealth); setMethods(nextMethods); setUnreachable(false);
         const url = parseUrlState(window.location.search);
-        if (url.query.trim() && url.view !== 'eval') void executeSearch(url.query, url.mode, url.model, url.k, 'none');
+        if (url.query.trim() && url.view !== 'eval') void executeSearch(url.query, url.mode, url.model, url.left ?? 'tfidf', url.k, 'none');
       } catch { if (!ignore) setUnreachable(true); }
     })();
     return () => { ignore = true; };
@@ -94,31 +97,31 @@ export default function App() {
   useEffect(() => {
     const onPopState = () => {
       const url = parseUrlState(window.location.search);
-      setQueryState(url.query); setModeState(url.mode); setModelState(url.model); setKState(url.k); setViewState(url.view ?? url.mode);
-      if (url.query.trim() && url.view !== 'eval') void executeSearch(url.query, url.mode, url.model, url.k, 'none');
+      setQueryState(url.query); setModeState(url.mode); setModelState(url.model); setLeftState(url.left ?? 'tfidf'); setKState(url.k); setViewState(url.view ?? url.mode);
+      if (url.query.trim() && url.view !== 'eval') void executeSearch(url.query, url.mode, url.model, url.left ?? 'tfidf', url.k, 'none');
       else { ++searchId.current; api.beginSearch(); setSubmitted(null); setResponses({}); setErrors({}); setLoading({}); }
     };
     window.addEventListener('popstate', onPopState); return () => window.removeEventListener('popstate', onPopState);
   }, [executeSearch]);
 
   if (unreachable) return <OfflineView onRetry={() => void retryConnection()} />;
-  const displayed = submitted; const displayedMode = displayed?.mode ?? mode; const displayedModel = displayed?.model ?? model;
-  const tfidf = responses.tfidf ?? null; const sbert = responses[displayedModel] ?? null;
+  const displayed = submitted; const displayedMode = displayed?.mode ?? mode; const displayedModel = displayed?.model ?? model; const displayedLeft = displayed?.left ?? left;
+  const leftResponse = responses[displayedLeft] ?? null; const rightResponse = responses[displayedModel] ?? null;
   const isAnyLoading = Object.values(loading).some(Boolean);
-  const hasSharedPaper = !!tfidf && !!sbert && tfidf.results.some((item) => sbert.results.some((other) => other.id === item.id));
-  const settingsChanged = !!displayed && (displayed.model !== model || displayed.k !== k);
-  const sbertName = methods.find((method) => method.id === displayedModel)?.display_name ?? 'Sentence-BERT';
+  const hasSharedPaper = !!leftResponse && !!rightResponse && leftResponse.results.some((item) => rightResponse.results.some((other) => other.id === item.id));
+  const settingsChanged = !!displayed && (displayed.model !== model || displayed.left !== left || displayed.k !== k);
+  const leftMethod = methods.find((method) => method.id === displayedLeft); const rightMethod = methods.find((method) => method.id === displayedModel);
   return <main className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-6">
     <Header health={health} view={view} onViewChange={handleViewChange} />
-    {view === 'eval' ? <EvaluationView /> : <><SearchControls query={query} setQuery={setQuery} mode={mode} onModeChange={handleModeChange} model={model} setModel={setModel} k={k} setK={setK} methods={methods} isSearching={isAnyLoading} settingsChanged={settingsChanged} onSubmit={handleSubmit} />
-    {displayedMode === 'compare' && <div className="p-3.5 bg-amber-50/80 border border-amber-200/80 rounded-lg text-xs sm:text-sm text-amber-900 leading-relaxed"><span className="font-semibold text-amber-950">Note on scores: </span>Scores are not comparable across methods. TF-IDF uses sparse term frequencies, while Sentence-BERT measures dense cosine embedding similarity.</div>}
+    {view === 'eval' ? <EvaluationView /> : <><SearchControls query={query} setQuery={setQuery} mode={mode} onModeChange={handleModeChange} model={model} setModel={setModel} left={left} setLeft={setLeft} k={k} setK={setK} methods={methods} isSearching={isAnyLoading} settingsChanged={settingsChanged} onSubmit={handleSubmit} />
+    {displayedMode === 'compare' && <div className="p-3.5 bg-amber-50/80 border border-amber-200/80 rounded-lg text-xs sm:text-sm text-amber-900 leading-relaxed"><span className="font-semibold text-amber-950">Note on scores: </span>Scores are not comparable across methods, including fused RRF and cross-encoder scores.</div>}
     <div className="sr-only" aria-live="polite" role="status">{isAnyLoading ? 'Searching arXiv papers...' : displayed ? 'Search results updated.' : ''}</div>
     {displayed && <p className="text-xs text-slate-500">Results for: <span className="font-medium text-slate-700">{displayed.query}</span></p>}
     {displayedMode === 'compare' ? <><div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-      <ResultColumn title="TF-IDF" response={tfidf} error={errors.tfidf ?? null} loading={!!loading.tfidf} other={sbert} showOnlyHere={hasSharedPaper} getDocument={getDocument} />
-      <ResultColumn title={sbertName} response={sbert} error={errors[displayedModel] ?? null} loading={!!loading[displayedModel]} other={tfidf} showOnlyHere={hasSharedPaper} getDocument={getDocument} />
-    </div>{tfidf && sbert && !hasSharedPaper && <p className="text-center text-sm text-slate-500" role="status">No papers appear in both lists.</p>}</> : <div>
-      <ResultColumn title={methods.find((method) => method.id === displayedModel)?.display_name ?? 'Search Results'} response={responses[displayedModel] ?? null} error={errors[displayedModel] ?? null} loading={!!loading[displayedModel]} other={null} showOnlyHere={false} getDocument={getDocument} />
+      <ResultColumn title={leftMethod?.display_name ?? displayedLeft} method={leftMethod} response={leftResponse} error={errors[displayedLeft] ?? null} loading={!!loading[displayedLeft]} other={rightResponse} showOnlyHere={hasSharedPaper} getDocument={getDocument} />
+      <ResultColumn title={rightMethod?.display_name ?? displayedModel} method={rightMethod} response={rightResponse} error={errors[displayedModel] ?? null} loading={!!loading[displayedModel]} other={leftResponse} showOnlyHere={hasSharedPaper} getDocument={getDocument} />
+    </div>{leftResponse && rightResponse && !hasSharedPaper && <p className="text-center text-sm text-slate-500" role="status">No papers appear in both lists.</p>}</> : <div>
+      <ResultColumn title={rightMethod?.display_name ?? 'Search Results'} method={rightMethod} response={responses[displayedModel] ?? null} error={errors[displayedModel] ?? null} loading={!!loading[displayedModel]} other={null} showOnlyHere={false} getDocument={getDocument} />
     </div>}</>}
   </main>;
 }

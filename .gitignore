@@ -18,7 +18,7 @@ data/
 results/
 !docs/
 !docs/results/
-!docs/results/*.json
+!docs/results/*.json    
 !docs/results/per_query/
 !docs/results/per_query/*.json
 !docs/analysis/

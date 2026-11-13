@@ -29,11 +29,14 @@ def client() -> TestClient:
     results = [SearchResult("first", 0.9, records["first"]["text"]), SearchResult("second", 0.4, records["second"]["text"])]
     registry = SearchRegistry(
         records=records,
-        retrievers={"tfidf": FakeRetriever(results)},
+        retrievers={method: FakeRetriever(results) for method in ("tfidf", "bm25", "hybrid-mpnet", "rerank-mpnet")},
         methods={
             "tfidf": MethodInfo("tfidf", "TF-IDF", ready=True),
+            "bm25": MethodInfo("bm25", "BM25", ready=True, kind="keyword", description="Keyword ranking."),
             "sbert-minilm": MethodInfo("sbert-minilm", "Sentence-BERT MiniLM", "mini", False, "python -m scripts.search_demo ..."),
             "sbert-mpnet": MethodInfo("sbert-mpnet", "Sentence-BERT MPNet", "mpnet", False, "python -m scripts.search_demo ..."),
+            "hybrid-mpnet": MethodInfo("hybrid-mpnet", "Hybrid (BM25 + MPNet)", ready=True, kind="hybrid", description="Fused ranking."),
+            "rerank-mpnet": MethodInfo("rerank-mpnet", "Rerank (MPNet + cross-encoder)", ready=True, kind="reranked", description="Cross-encoder ranking."),
         },
     )
     return TestClient(create_app(registry))
@@ -46,7 +49,8 @@ def test_health_and_methods_shapes(client: TestClient) -> None:
     assert health.json()["api_version"] == "1.0.0"
     methods = client.get("/methods")
     assert methods.status_code == 200
-    assert set(methods.json()[0]) == {"id", "display_name", "model_name", "ready"}
+    assert {"id", "display_name", "model_name", "ready", "kind", "description"} <= set(methods.json()[0])
+    assert {method["id"] for method in methods.json()} == {"tfidf", "bm25", "sbert-minilm", "sbert-mpnet", "hybrid-mpnet", "rerank-mpnet"}
 
 
 def test_root_redirects_to_docs(client: TestClient) -> None:
@@ -74,7 +78,21 @@ def test_search_validation_errors(client: TestClient, payload: dict[str, object]
 def test_unknown_method_is_422(client: TestClient) -> None:
     response = client.post("/search", json={"query": "x", "method": "unknown"})
     assert response.status_code == 422
-    assert response.json()["error"]["details"]["valid_methods"] == ["tfidf", "sbert-minilm", "sbert-mpnet"]
+    assert response.json()["error"]["details"]["valid_methods"] == ["tfidf", "bm25", "sbert-minilm", "sbert-mpnet", "hybrid-mpnet", "rerank-mpnet"]
+
+
+@pytest.mark.parametrize("method", ["bm25", "hybrid-mpnet", "rerank-mpnet"])
+def test_new_methods_search_with_preloaded_fakes(client: TestClient, method: str) -> None:
+    response = client.post("/search", json={"query": "compression", "method": method, "k": 2})
+    assert response.status_code == 200
+    assert [result["id"] for result in response.json()["results"]] == ["first", "second"]
+
+
+def test_methods_omit_benchmarks_for_malformed_snapshot(client: TestClient, tmp_path, monkeypatch) -> None:
+    snapshot = tmp_path / "bad.json"
+    snapshot.write_text("not json")
+    monkeypatch.setenv("EVALUATION_SNAPSHOT_PATH", str(snapshot))
+    assert all("benchmarks" not in method for method in client.get("/methods").json())
 
 
 def test_unavailable_method_is_503(client: TestClient) -> None:

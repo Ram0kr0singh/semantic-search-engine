@@ -55,10 +55,40 @@ def health(request: Request) -> dict[str, object]:
 @router.get("/methods")
 def methods(request: Request) -> list[dict[str, object]]:
     registry = get_registry(request)
+    benchmarks = _method_benchmarks()
     return [
-        {"id": method.id, "display_name": method.display_name, "model_name": method.model_name, "ready": method.ready}
+        {**{"id": method.id, "display_name": method.display_name, "model_name": method.model_name,
+             "kind": method.kind, "description": method.description, "ready": method.ready,
+             "build_command": method.build_command, "unavailable_reason": method.unavailable_reason},
+         **({"benchmarks": benchmarks[method.id]} if method.id in benchmarks else {})}
         for method in registry.methods.values()
     ]
+
+
+def _method_benchmarks() -> dict[str, list[dict[str, object]]]:
+    """Read benchmark values opportunistically; the live API never depends on them."""
+    try:
+        payload = json.loads(evaluation_snapshot_path().read_text(encoding="utf-8"))
+        runs = payload.get("runs", [])
+        if not isinstance(runs, list):
+            return {}
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        return {}
+    mpnet = "sentence-transformers/all-mpnet-base-v2"
+    def matches(method_id: str, run: object) -> bool:
+        if not isinstance(run, dict): return False
+        if method_id in {"tfidf", "bm25"}: return run.get("method") == method_id
+        if method_id == "sbert-minilm": return run.get("method") == "sbert" and run.get("model") == "sentence-transformers/all-MiniLM-L6-v2"
+        if method_id == "sbert-mpnet": return run.get("method") == "sbert" and run.get("model") == mpnet
+        if method_id == "hybrid-mpnet": return run.get("method") == "hybrid" and run.get("model") == mpnet
+        reranking = run.get("reranking")
+        return method_id == "rerank-mpnet" and run.get("method") == "rerank" and run.get("model") == mpnet and isinstance(reranking, dict) and reranking.get("first_stage") == "sbert"
+    mapped: dict[str, list[dict[str, object]]] = {}
+    for method_id in ("tfidf", "bm25", "sbert-minilm", "sbert-mpnet", "hybrid-mpnet", "rerank-mpnet"):
+        values = [{"dataset": run["dataset"], "ndcg_at_10": run["ndcg_at_10"], "recall_at_100": run["recall_at_100"]}
+                  for run in runs if matches(method_id, run) and all(key in run for key in ("dataset", "ndcg_at_10", "recall_at_100"))]
+        if values: mapped[method_id] = values
+    return mapped
 
 
 @router.get("/evaluation", response_model=EvaluationResponse)
@@ -81,12 +111,13 @@ def search(payload: SearchRequest, request: Request) -> SearchResponse:
         raise error(422, "unknown_method", "Unknown search method.", {"valid_methods": list(registry.methods)})
     method = registry.methods[method_id]
     if not method.ready:
-        raise error(503, "method_unavailable", f"Search method '{method_id}' is unavailable.", {"build_command": method.build_command})
+        details = {"build_command": method.build_command, "reason": method.unavailable_reason}
+        raise error(503, "method_unavailable", method.unavailable_reason or f"Search method '{method_id}' is unavailable.", details)
 
     start = perf_counter()
     retriever = registry.retrievers[method_id]
-    if method_id.startswith("sbert-"):
-        with registry.sbert_lock:
+    if method_id in {"sbert-minilm", "sbert-mpnet", "hybrid-mpnet", "rerank-mpnet"}:
+        with registry.inference_lock:
             results = retriever.search(payload.query, payload.k)
     else:
         results = retriever.search(payload.query, payload.k)

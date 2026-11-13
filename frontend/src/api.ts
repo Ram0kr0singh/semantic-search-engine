@@ -5,6 +5,10 @@ export interface Method {
   display_name: string;
   model_name: string | null;
   ready: boolean;
+  kind: 'keyword' | 'semantic' | 'hybrid' | 'reranked';
+  description: string;
+  unavailable_reason?: string | null;
+  benchmarks?: Array<{ dataset: string; ndcg_at_10: number; recall_at_100: number }>;
   build_command?: string | null;
 }
 

@@ -13,6 +13,8 @@ services:
       ARXIV_MPNET_INDEX_DIR: /app/data/index_mpnet
       ARXIV_MINILM_MODEL: ${ARXIV_MINILM_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
       ARXIV_MPNET_MODEL: ${ARXIV_MPNET_MODEL:-sentence-transformers/all-mpnet-base-v2}
+      RERANK_MODEL: ${RERANK_MODEL:-cross-encoder/ms-marco-MiniLM-L-6-v2}
+      RERANK_ENABLED: ${RERANK_ENABLED:-true}
       EVALUATION_SNAPSHOT_PATH: /app/docs/results/summary.json
       API_CORS_ORIGINS: ${API_CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
       HF_HOME: /hf

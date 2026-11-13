@@ -1,6 +1,6 @@
 import { onlyHereIds } from '../comparison';
 import { ResultCard } from './ResultCard';
-import type { DocumentRecord, SearchResponse } from '../api';
+import type { DocumentRecord, Method, SearchResponse } from '../api';
 
 interface ResultColumnProps {
   title: string;
@@ -10,6 +10,7 @@ interface ResultColumnProps {
   other: SearchResponse | null;
   showOnlyHere: boolean;
   getDocument: (id: string) => Promise<DocumentRecord>;
+  method?: Method;
 }
 
 export function ResultColumn({
@@ -20,6 +21,7 @@ export function ResultColumn({
   other,
   showOnlyHere,
   getDocument,
+  method,
 }: ResultColumnProps) {
   const onlyIds = onlyHereIds(response, other);
 
@@ -38,6 +40,12 @@ export function ResultColumn({
           </span>
         )}
       </header>
+
+      {method && <div className="px-4 py-2.5 text-xs text-slate-600 border-b border-slate-100 space-y-1">
+        <p>{method.description}</p>
+        {method.benchmarks && method.benchmarks.length > 0 && <><p>Benchmark nDCG@10: {method.benchmarks.map((benchmark) => `${benchmark.dataset === 'scifact' ? 'SciFact' : benchmark.dataset === 'fiqa' ? 'FiQA' : benchmark.dataset} ${benchmark.ndcg_at_10.toFixed(3)}`).join(', ')}</p><p className="text-slate-500">Benchmark results on SciFact and FiQA, not measured on this arXiv corpus; see Evaluation.</p></>}
+        {method.kind === 'reranked' && <p>Includes cross-encoder scoring of 100 candidates per query, so it is slower.</p>}
+      </div>}
 
       <div className="divide-y divide-slate-100 flex-1">
         {loading && (

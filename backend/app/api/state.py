@@ -17,6 +17,9 @@ class MethodInfo:
     model_name: str | None = None
     ready: bool = False
     build_command: str | None = None
+    kind: str = "keyword"
+    description: str = ""
+    unavailable_reason: str | None = None
 
 
 @dataclass
@@ -27,7 +30,10 @@ class SearchRegistry:
     retrievers: dict[str, Retriever] = field(default_factory=dict)
     methods: dict[str, MethodInfo] = field(default_factory=dict)
     embedding_device: str = "cpu"
-    sbert_lock: Lock = field(default_factory=Lock)
+    # Held once around a complete request that invokes a neural model.  It is
+    # intentionally not acquired inside retrievers: composites call shared
+    # components, and nested acquisition of a non-reentrant Lock would hang.
+    inference_lock: Lock = field(default_factory=Lock)
 
     @property
     def default_method(self) -> str | None:

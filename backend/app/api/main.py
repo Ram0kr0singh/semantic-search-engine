@@ -17,6 +17,9 @@ from fastapi.encoders import jsonable_encoder
 from backend.app.data.arxiv import load_arxiv_corpus
 from backend.app.retrieval.sbert import SentenceBertRetriever
 from backend.app.retrieval.tfidf import TfidfRetriever
+from backend.app.retrieval.bm25 import BM25Retriever
+from backend.app.retrieval.hybrid import HybridRetriever
+from backend.app.retrieval.rerank import RerankingRetriever
 
 from .routers import router
 from .state import MethodInfo, SearchRegistry
@@ -39,7 +42,11 @@ def load_registry() -> SearchRegistry:
     tfidf = TfidfRetriever()
     tfidf.index(corpus)
     registry = SearchRegistry(records=records, retrievers={"tfidf": tfidf}, embedding_device="cuda" if torch.cuda.is_available() else "cpu")
-    registry.methods["tfidf"] = MethodInfo("tfidf", "TF-IDF", ready=True)
+    registry.methods["tfidf"] = MethodInfo("tfidf", "TF-IDF", kind="keyword", description="Matches papers using weighted keyword overlap.", ready=True)
+    bm25 = BM25Retriever()
+    bm25.index(corpus)
+    registry.retrievers["bm25"] = bm25
+    registry.methods["bm25"] = MethodInfo("bm25", "BM25", kind="keyword", description="Ranks papers by keyword relevance with BM25.", ready=True)
 
     configs = (
         ("sbert-minilm", "Sentence-BERT MiniLM", _setting("ARXIV_MINILM_MODEL", "sentence-transformers/all-MiniLM-L6-v2"), Path(_setting("ARXIV_MINILM_INDEX_DIR", "data/arxiv_sbert_index"))),
@@ -48,7 +55,7 @@ def load_registry() -> SearchRegistry:
     for method_id, display_name, model_name, index_dir in configs:
         command = _build_command(corpus_path, index_dir, model_name)
         if not (index_dir / "metadata.json").is_file() or not (index_dir / "index.faiss").is_file():
-            registry.methods[method_id] = MethodInfo(method_id, display_name, model_name, False, command)
+            registry.methods[method_id] = MethodInfo(method_id, display_name, model_name, False, command, "semantic", "Finds papers with similar meaning using sentence embeddings.", "The saved semantic index is not available.")
             logger.warning("%s index is unavailable. Build it with: %s", method_id, command)
             continue
         try:
@@ -56,11 +63,29 @@ def load_registry() -> SearchRegistry:
             retriever.load(index_dir)
         except Exception as exc:  # Do not prevent sparse search when a local index is unusable.
             logger.warning("%s index is unavailable (%s). Build it with: %s", method_id, exc, command)
-            registry.methods[method_id] = MethodInfo(method_id, display_name, model_name, False, command)
+            registry.methods[method_id] = MethodInfo(method_id, display_name, model_name, False, command, "semantic", "Finds papers with similar meaning using sentence embeddings.", "The saved semantic index could not be loaded.")
         else:
             registry.retrievers[method_id] = retriever
             registry.embedding_device = retriever.device
-            registry.methods[method_id] = MethodInfo(method_id, display_name, model_name, True)
+            registry.methods[method_id] = MethodInfo(method_id, display_name, model_name, True, None, "semantic", "Finds papers with similar meaning using sentence embeddings.")
+    mpnet = registry.retrievers.get("sbert-mpnet")
+    mpnet_command = _build_command(corpus_path, Path(_setting("ARXIV_MPNET_INDEX_DIR", "data/index_mpnet")), _setting("ARXIV_MPNET_MODEL", "sentence-transformers/all-mpnet-base-v2"))
+    if mpnet is None:
+        reason = "MPNet's saved semantic index is not available."
+        registry.methods["hybrid-mpnet"] = MethodInfo("hybrid-mpnet", "Hybrid (BM25 + MPNet)", kind="hybrid", description="Combines BM25 and MPNet rankings; fused scores are not comparable across methods.", build_command=mpnet_command, unavailable_reason=reason)
+        registry.methods["rerank-mpnet"] = MethodInfo("rerank-mpnet", "Rerank (MPNet + cross-encoder)", kind="reranked", description="Reranks MPNet results with a cross-encoder; scores are not comparable across methods.", build_command=mpnet_command, unavailable_reason=reason)
+        return registry
+    registry.retrievers["hybrid-mpnet"] = HybridRetriever([bm25, mpnet], k_rrf=60, depth=100, reuse_indexed_components=True)
+    registry.methods["hybrid-mpnet"] = MethodInfo("hybrid-mpnet", "Hybrid (BM25 + MPNet)", kind="hybrid", description="Combines BM25 and MPNet rankings; fused scores are not comparable across methods.", ready=True)
+    if _setting("RERANK_ENABLED", "true").lower() not in {"1", "true", "yes", "on"}:
+        registry.methods["rerank-mpnet"] = MethodInfo("rerank-mpnet", "Rerank (MPNet + cross-encoder)", kind="reranked", description="Reranks MPNet results with a cross-encoder; scores are not comparable across methods.", unavailable_reason="Reranking is disabled by RERANK_ENABLED.")
+    else:
+        try:
+            registry.retrievers["rerank-mpnet"] = RerankingRetriever(mpnet, cross_encoder_name=_setting("RERANK_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2"), depth=100, reuse_indexed_first_stage=True)
+            registry.methods["rerank-mpnet"] = MethodInfo("rerank-mpnet", "Rerank (MPNet + cross-encoder)", kind="reranked", description="Reranks MPNet results with a cross-encoder; scores are not comparable across methods.", ready=True)
+        except Exception as exc:
+            logger.warning("rerank-mpnet is unavailable (%s)", exc)
+            registry.methods["rerank-mpnet"] = MethodInfo("rerank-mpnet", "Rerank (MPNet + cross-encoder)", kind="reranked", description="Reranks MPNet results with a cross-encoder; scores are not comparable across methods.", unavailable_reason="The reranking model could not be loaded.")
     return registry
 
 

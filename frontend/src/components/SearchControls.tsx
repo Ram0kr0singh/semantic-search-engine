@@ -8,6 +8,8 @@ interface SearchControlsProps {
   setQuery: (q: string) => void;
   mode: SearchMode;
   onModeChange: (mode: SearchMode, model: string) => void;
+  left: string;
+  setLeft: (m: string) => void;
   model: string;
   setModel: (m: string) => void;
   k: ResultCount;
@@ -25,6 +27,8 @@ export function SearchControls({
   onModeChange,
   model,
   setModel,
+  left,
+  setLeft,
   k,
   setK,
   methods,
@@ -34,23 +38,12 @@ export function SearchControls({
 }: SearchControlsProps) {
   const selectedMethod = methods.find((m) => m.id === model);
 
-  // In compare mode, we only select the SBERT model to compare against TF-IDF
-  const selectableMethods =
-    mode === 'compare'
-      ? methods.filter((m) => m.id.startsWith('sbert-'))
-      : methods;
+  const selectableMethods = methods;
 
   const handleModeChange = (newMode: SearchMode) => {
     if (newMode === mode) return;
     let nextModel = model;
-    // If switching to compare mode and currently selected model is tfidf, switch to a ready sbert model
-    if (newMode === 'compare' && model === 'tfidf') {
-      const readySbert =
-        methods.find((m) => m.id === 'sbert-mpnet' && m.ready)?.id ??
-        methods.find((m) => m.id.startsWith('sbert-') && m.ready)?.id ??
-        'sbert-mpnet';
-      nextModel = readySbert;
-    }
+    if (newMode === 'compare' && model === left) nextModel = model === 'sbert-mpnet' ? 'tfidf' : 'sbert-mpnet';
     onModeChange(newMode, nextModel);
   };
 
@@ -107,7 +100,7 @@ export function SearchControls({
             />
             <button
               type="submit"
-              disabled={!query.trim() || isSearching}
+              disabled={!query.trim() || isSearching || (mode === 'compare' && left === model)}
               className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg shadow-2xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 cursor-pointer"
             >
               {isSearching ? 'Searching…' : 'Search'}
@@ -119,26 +112,18 @@ export function SearchControls({
 
         {/* Configuration selectors */}
         <div className="flex flex-wrap items-end gap-4 pt-1">
+          {mode === 'compare' && <div>
+            <label htmlFor="left-select" className="block text-xs font-semibold text-slate-700 mb-1">Left method:</label>
+            <MethodSelect id="left-select" value={left} methods={selectableMethods} onChange={setLeft} />
+          </div>}
           <div>
             <label
               htmlFor="model-select"
               className="block text-xs font-semibold text-slate-700 mb-1"
             >
-              {mode === 'compare' ? 'Compare TF-IDF against:' : 'Retrieval Method:'}
+              {mode === 'compare' ? 'Right method:' : 'Retrieval Method:'}
             </label>
-            <select
-              id="model-select"
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              className="text-xs sm:text-sm bg-white border border-slate-300 rounded-md px-3 py-1.5 text-slate-800 shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 cursor-pointer"
-            >
-              {selectableMethods.map((m) => (
-                <option key={m.id} value={m.id} disabled={!m.ready}>
-                  {m.display_name}
-                  {!m.ready ? ' (index unavailable)' : ''}
-                </option>
-              ))}
-            </select>
+            <MethodSelect id="model-select" value={model} methods={selectableMethods} onChange={setModel} />
           </div>
 
           <div>
@@ -160,9 +145,10 @@ export function SearchControls({
             </select>
           </div>
 
+          {mode === 'compare' && left === model && <p className="text-xs text-amber-700" role="status">Choose two different methods to compare.</p>}
           {selectedMethod && !selectedMethod.ready && (
             <p className="text-xs text-amber-700 bg-amber-50 px-2.5 py-1 rounded border border-amber-200">
-              This method’s index has not been built yet.
+              {selectedMethod.unavailable_reason ?? 'This method is unavailable.'}
             </p>
           )}
           {settingsChanged && <p className="text-xs text-slate-500" role="status">Settings changed, press Search to update.</p>}
@@ -188,6 +174,13 @@ export function SearchControls({
       </div>
     </section>
   );
+}
+
+function MethodSelect({ id, value, methods, onChange }: { id: string; value: string; methods: Method[]; onChange: (value: string) => void }) {
+  const groups: Array<[Method['kind'], string]> = [['keyword', 'Keyword'], ['semantic', 'Semantic'], ['hybrid', 'Hybrid'], ['reranked', 'Reranked']];
+  return <select id={id} value={value} onChange={(event) => onChange(event.target.value)} className="text-xs sm:text-sm bg-white border border-slate-300 rounded-md px-3 py-1.5 text-slate-800 shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 cursor-pointer">
+    {groups.map(([kind, label]) => { const items = methods.filter((method) => method.kind === kind); return items.length ? <optgroup key={kind} label={label}>{items.map((method) => <option key={method.id} value={method.id} disabled={!method.ready}>{method.display_name}{!method.ready ? ` (${method.unavailable_reason ?? 'unavailable'})` : ''}</option>)}</optgroup> : null; })}
+  </select>;
 }
 
 function CharacterCounterAnnouncement({ length }: { length: number }) {

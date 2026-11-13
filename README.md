@@ -103,7 +103,7 @@ links are listed here.
   is not currently wired into the search API.
 - FastAPI endpoints for health, methods, search, documents, and the evaluation
   snapshot.
-- React UI with Compare, Search, and Evaluation views.
+- React UI with Compare, Search, and Evaluation views; Compare supports any two distinct available methods.
 - Shareable search settings in the URL, document expansion, and offline/error
   handling.
 - Docker Compose setup with CPU as the default and an optional NVIDIA override.
@@ -137,9 +137,10 @@ flowchart LR
 
 The offline demo workflow streams the arXiv metadata, builds a local JSONL
 corpus, encodes documents, and saves the Sentence-BERT FAISS indexes. At API
-startup, TF-IDF is built and available saved dense indexes are loaded. Each
-dense search embeds its query, searches the loaded index, and returns ranked
-papers and snippets.
+startup, TF-IDF and BM25 are built and available saved dense indexes are loaded.
+The API also exposes equal-weight BM25 + MPNet RRF hybrid search and MPNet
+cross-encoder reranking when their required models are available. Restart the
+API after configuration changes; it does not auto-reload.
 
 ## Quick start (local, with GPU if available)
 
@@ -234,7 +235,9 @@ docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
 This requires NVIDIA drivers and Docker Desktop GPU support. The override
 selects CUDA PyTorch wheels and requires rebuilding the image. It has been
 validated with `docker compose config`, but has not been tested on GPU
-hardware. CPU mode is slower, especially for MPNet.
+hardware. CPU mode is slower, especially for MPNet and the reranked method.
+The reranker downloads approximately 91 MB of cross-encoder weights on first
+start into the mounted Hugging Face cache. Set `RERANK_ENABLED=false` to skip it.
 
 Stop Docker services with:
 
@@ -251,7 +254,7 @@ running.
 | Method and path | Purpose |
 | --- | --- |
 | `GET /health` | Reports API status, corpus size, methods, and embedding device. |
-| `GET /methods` | Lists registered retrieval methods and their readiness. |
+| `GET /methods` | Lists methods, readiness, kind, description, and available benchmark values. |
 | `POST /search` | Searches with an optional method and result count. |
 | `GET /documents/{id}` | Returns a full record from the arXiv demo corpus. |
 | `GET /evaluation` | Returns the committed evaluation summary. |
@@ -264,6 +267,11 @@ curl.exe -X POST http://127.0.0.1:8000/search `
   -H "Content-Type: application/json" `
   --data-raw '{"query":"making models smaller without losing accuracy","method":"sbert-mpnet","k":5}'
 ```
+
+Method IDs are `tfidf`, `bm25`, `sbert-minilm`, `sbert-mpnet`,
+`hybrid-mpnet`, and `rerank-mpnet`. `/methods` can include snapshot-backed
+SciFact and FiQA benchmark values. `RERANK_MODEL` defaults to
+`cross-encoder/ms-marco-MiniLM-L-6-v2`; `RERANK_ENABLED` defaults to `true`.
 
 ## Reproducing the evaluation
 
@@ -398,15 +406,15 @@ docker-compose*.yml    Default and optional GPU Compose configurations
 
 ## Design decisions and limitations
 
-- TF-IDF and Sentence-BERT produce scores on different scales; compare their
-  rankings and benchmark metrics, not raw search scores against each other.
+- Keyword, dense, fused RRF, and cross-encoder scores are not comparable
+  across methods; compare rankings and benchmark metrics instead.
 - The demo corpus is a deterministic sample of 30,000 papers from the public
   `yacud1/arxiv-bge-base-818k` arXiv metadata dataset. The existing repository
   documentation records its license as CC0-1.0.
 - General-purpose embedding models can return topical matches rather than
   intended meaning, particularly for out-of-domain queries.
-- The evaluation includes fixed equal-weight RRF hybrid fusion and a fixed
-  cross-encoder reranking protocol; neither is exposed through the search API.
+- The API exposes fixed equal-weight RRF MPNet hybrid fusion and MPNet-first-
+  stage cross-encoder reranking; the development-tuned hybrid is not exposed.
 - Docker defaults to CPU; local CUDA use requires a compatible PyTorch build
   and GPU environment.
 - Timing values are from a single laptop run and will vary with hardware and

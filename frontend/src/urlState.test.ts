@@ -13,6 +13,7 @@ describe('URL state management', () => {
       query: '',
       mode: 'compare',
       model: 'sbert-mpnet',
+      left: 'tfidf',
       k: 5,
       view: 'compare',
     });
@@ -24,6 +25,7 @@ describe('URL state management', () => {
       query: 'neural networks',
       mode: 'search',
       model: 'sbert-minilm',
+      left: 'tfidf',
       k: 20,
       view: 'search',
     });
@@ -67,7 +69,7 @@ describe('URL state management', () => {
     };
     const serialized = serializeUrlState(state);
     expect(serialized).not.toContain('q=');
-    expect(serialized).toBe('mode=search&model=tfidf&k=5');
+    expect(serialized).toBe('mode=search&model=tfidf&left=tfidf&k=5');
   });
 
   it('writes URL state to browser history', () => {
