@@ -1,6 +1,81 @@
 @import "tailwindcss";
 
 @layer base {
+  :root,
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --canvas: #08090d;
+    --surface: #0f121a;
+    --surface-raised: #161924;
+    --surface-toolbar: #0c0e14;
+    --border: rgba(255, 255, 255, 0.12);
+    --border-subtle: rgba(255, 255, 255, 0.07);
+    --border-accent: rgba(59, 130, 246, 0.35);
+    --text: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent: #3b82f6;
+    --accent-hover: #60a5fa;
+    --accent-fg: #ffffff;
+    --ring: #38bdf8;
+    --success: #10b981;
+    --success-bg: rgba(16, 185, 129, 0.12);
+    --warning: #f59e0b;
+    --warning-bg: rgba(245, 158, 11, 0.12);
+    --warning-text: #fde68a;
+    --danger: #ef4444;
+    --danger-bg: rgba(239, 68, 68, 0.12);
+    --danger-text: #fca5a5;
+    --chart-bar-1: #3b82f6;
+    --chart-bar-2: #06b6d4;
+    --glow-1: rgba(59, 130, 246, 0.22);
+    --glow-2: rgba(6, 182, 212, 0.18);
+    --glow-3: rgba(139, 92, 246, 0.18);
+    --hero-btn-bg: #ffffff;
+    --hero-btn-fg: #090a0f;
+    --pill-bg: rgba(255, 255, 255, 0.05);
+    --pill-border: rgba(255, 255, 255, 0.1);
+    --pill-hover-bg: rgba(255, 255, 255, 0.1);
+    --shimmer-1: rgba(255, 255, 255, 0.03);
+    --shimmer-2: rgba(255, 255, 255, 0.08);
+  }
+
+  [data-theme="light"] {
+    color-scheme: light;
+    --canvas: #f8fafc;
+    --surface: #ffffff;
+    --surface-raised: #f1f5f9;
+    --surface-toolbar: #f8fafc;
+    --border: #cbd5e1;
+    --border-subtle: #e2e8f0;
+    --border-accent: rgba(37, 99, 235, 0.35);
+    --text: #0f172a;
+    --text-muted: #475569;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --accent-fg: #ffffff;
+    --ring: #2563eb;
+    --success: #059669;
+    --success-bg: #ecfdf5;
+    --warning: #d97706;
+    --warning-bg: #fffbeb;
+    --warning-text: #92400e;
+    --danger: #dc2626;
+    --danger-bg: #fef2f2;
+    --danger-text: #991b1b;
+    --chart-bar-1: #2563eb;
+    --chart-bar-2: #0284c7;
+    --glow-1: rgba(59, 130, 246, 0.12);
+    --glow-2: rgba(6, 182, 212, 0.08);
+    --glow-3: rgba(139, 92, 246, 0.08);
+    --hero-btn-bg: #0f172a;
+    --hero-btn-fg: #ffffff;
+    --pill-bg: #f1f5f9;
+    --pill-border: #cbd5e1;
+    --pill-hover-bg: #e2e8f0;
+    --shimmer-1: #f1f5f9;
+    --shimmer-2: #e2e8f0;
+  }
+
   *,
   *::before,
   *::after {
@@ -9,11 +84,12 @@
 
   body {
     margin: 0;
-    color: #0f172a;
-    background-color: #f8fafc;
+    color: var(--text);
+    background-color: var(--canvas);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 150ms ease, color 150ms ease;
   }
 
   button,
@@ -33,7 +109,18 @@
 }
 
 .skeleton-shimmer {
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background: linear-gradient(90deg, var(--shimmer-1) 25%, var(--shimmer-2) 50%, var(--shimmer-1) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

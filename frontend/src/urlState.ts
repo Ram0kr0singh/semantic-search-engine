@@ -50,9 +50,11 @@ export function serializeUrlState(state: UrlState): string {
   return params.toString();
 }
 
-export function writeUrlState(state: UrlState, replace = false): void {
-  const queryStr = serializeUrlState(state);
-  const newUrl = `${window.location.pathname}${queryStr ? `?${queryStr}` : ''}`;
+export function writeUrlState(_state: UrlState, replace = false): void {
+  // Searches are intentionally not encoded in the address bar. A query can be
+  // personal or simply long, and a clean address makes returning to the site
+  // feel like starting a new search rather than resuming an old one.
+  const newUrl = window.location.pathname;
   if (replace) {
     window.history.replaceState(null, '', newUrl);
   } else {
