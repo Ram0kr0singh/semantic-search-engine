@@ -53,8 +53,8 @@ export function SearchControls({
   };
 
   const paperCount = health?.document_count
-    ? `${health.document_count.toLocaleString()} papers`
-    : '30,000 papers';
+    ? `${health.document_count.toLocaleString()}-paper sample of arXiv computer-science research`
+    : '30,000-paper sample of arXiv computer-science research';
   const device = health?.embedding_device?.toUpperCase() ?? 'CUDA';
 
   return (
@@ -70,7 +70,7 @@ export function SearchControls({
           <span>
             {health
               ? `arXiv CS Corpus · ${paperCount} · ${device}`
-              : 'arXiv CS Corpus · 30,000 papers · Neural Search'}
+              : 'arXiv CS Corpus · 30,000-paper sample of arXiv computer-science research · Neural Search'}
           </span>
         </div>
 

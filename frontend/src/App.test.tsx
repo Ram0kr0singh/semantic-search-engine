@@ -43,12 +43,14 @@ describe('App Component', () => {
   it('shows the offline screen when health checks fail', async () => {
     vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('Network failure')))); render(<App />);
     expect(await screen.findByText('Semantic Search is offline')).toBeInTheDocument();
+    expect(screen.getByText('python -m uvicorn backend.app.api.main:app --port 8000')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /retry connection/i })).toBeInTheDocument();
   });
 
   it('starts blank, cleans legacy URL state, and never submits a previous search', async () => {
     window.history.replaceState(null, '', '/?q=old&mode=compare&model=tfidf'); const fetchMock = installApi(); render(<App />); await ready();
     expect(screen.getByRole('textbox', { name: /search 30,000/i })).toHaveValue(''); expect(window.location.search).toBe('');
+    expect(screen.getByLabelText('Search approach:')).toHaveValue('sbert-mpnet');
     expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/search'))).toHaveLength(0);
   });
 
@@ -108,5 +110,85 @@ describe('App Component', () => {
   it('starts a new blank search when navigating back or reopening the home page', async () => {
     installApi(); render(<App />); await ready(); await search('history'); expect(await screen.findByText('sbert-mpnet paper')).toBeInTheDocument(); window.dispatchEvent(new PopStateEvent('popstate'));
     await waitFor(() => expect(screen.getByRole('textbox', { name: /search 30,000/i })).toHaveValue('')); expect(screen.queryByText('sbert-mpnet paper')).not.toBeInTheDocument();
+  });
+
+  it('keeps results visible after changing a setting and tells the user to search again', async () => {
+    installApi(); render(<App />); await ready(); await search('keep this result');
+    expect(await screen.findByText('sbert-mpnet paper')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Show:'), { target: { value: '10' } });
+    expect(screen.getByText('sbert-mpnet paper')).toBeInTheDocument();
+    expect(screen.getByText('Choices changed — select Search to update the results.')).toBeInTheDocument();
+  });
+
+  it('shows comparison method benchmarks, their caption, and the rerank slower-method note', async () => {
+    installApi(); render(<App />); await ready(); await compare();
+    fireEvent.change(screen.getByLabelText('First approach:'), { target: { value: 'sbert-mpnet' } });
+    fireEvent.change(screen.getByLabelText('Second approach:'), { target: { value: 'rerank-mpnet' } });
+    await search('rerank comparison');
+    expect(await screen.findByText('Benchmark nDCG@10: SciFact 0.656')).toBeInTheDocument();
+    expect(screen.getByText(/not measured on this arXiv corpus/i)).toBeInTheDocument();
+    expect(screen.getByText(/Includes cross-encoder scoring of 100 candidates per query, so it is slower/i)).toBeInTheDocument();
+  });
+
+  it('keeps only the final rapid search results and cancels the previous request', async () => {
+    const pending: Array<{ query: string; signal: AbortSignal; resolve: (value: Response) => void }> = [];
+    installApi((_method) => new Promise<Response>((resolve) => {
+      // The query and abort signal come from the fetch mock below.
+      pending.push({ query: '', signal: new AbortController().signal, resolve });
+    }));
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith('/health')) return json(mockHealth);
+      if (url.endsWith('/methods')) return json(mockMethods);
+      if (url.endsWith('/search')) {
+        const body = JSON.parse(String(init?.body)) as { query: string; method: string };
+        return new Promise<Response>((resolve) => pending.push({ query: body.query, signal: init?.signal as AbortSignal, resolve }));
+      }
+      return json({});
+    });
+    vi.stubGlobal('fetch', fetchMock); render(<App />); await ready();
+    await search('older');
+    fireEvent.click(screen.getByRole('button', { name: 'BERT' }));
+    await waitFor(() => expect(pending).toHaveLength(2));
+    expect(pending[0].signal.aborted).toBe(true);
+    pending[1].resolve(await json(response('sbert-mpnet', 'new', 'New result')));
+    expect(await screen.findByText('New result')).toBeInTheDocument();
+    pending[0].resolve(await json(response('sbert-mpnet', 'old', 'Old result')));
+    await waitFor(() => expect(screen.queryByText('Old result')).not.toBeInTheDocument());
+  });
+
+  it('disables Search for empty and whitespace-only queries, and enforces the 500-character limit', async () => {
+    installApi(); render(<App />); await ready();
+    const input = screen.getByRole('textbox', { name: /search 30,000/i });
+    const button = within(input.closest('form')!).getByRole('button', { name: 'Search' });
+    expect(button).toBeDisabled();
+    fireEvent.change(input, { target: { value: '   ' } }); expect(button).toBeDisabled();
+    fireEvent.change(input, { target: { value: 'a'.repeat(401) } });
+    expect(button).toBeEnabled(); expect(screen.getByText('401/500 characters')).toBeInTheDocument();
+    expect(input).toHaveAttribute('maxLength', '500');
+    fireEvent.change(input, { target: { value: 'a'.repeat(500) } });
+    expect(screen.getByText('500/500 characters')).toBeInTheDocument();
+  });
+
+  it('shows the 422 validation message from a failed search', async () => {
+    installApi(() => json({ error: { details: [{ msg: 'Value error, query is invalid' }] } }, 422));
+    render(<App />); await ready(); await search('invalid');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Invalid request query or parameters: query is invalid.');
+  });
+
+  it('returns to a clean home page when the brand is clicked', async () => {
+    installApi(); render(<App />); await ready(); await search('home reset');
+    expect(await screen.findByText('sbert-mpnet paper')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /go to home page/i }));
+    expect(screen.getByRole('textbox', { name: /search 30,000/i })).toHaveValue('');
+    expect(screen.queryByText('sbert-mpnet paper')).not.toBeInTheDocument();
+    expect(window.location.search).toBe('');
+  });
+
+  it('submits an example query and puts it in the input', async () => {
+    installApi(); render(<App />); await ready();
+    fireEvent.click(screen.getByRole('button', { name: 'BERT' }));
+    expect(await screen.findByText('sbert-mpnet paper')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /search 30,000/i })).toHaveValue('BERT');
   });
 });
