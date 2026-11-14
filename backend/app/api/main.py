@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -23,6 +24,11 @@ from backend.app.retrieval.rerank import RerankingRetriever
 
 from .routers import router
 from .state import MethodInfo, SearchRegistry
+from .workspaces import (
+    router as workspace_router,
+    WorkspaceManager,
+    WorkspaceUploadBodyLimitMiddleware,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -91,17 +97,48 @@ def load_registry() -> SearchRegistry:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.registry = load_registry()
-    yield
+    if not hasattr(app.state, "registry"):
+        app.state.registry = load_registry()
+    if not hasattr(app.state, "workspace_manager"):
+        app.state.workspace_manager = WorkspaceManager()
+
+    async def cleanup_loop() -> None:
+        while True:
+            await asyncio.sleep(60)
+
+            app.state.workspace_manager.cleanup()
+
+    task = asyncio.create_task(cleanup_loop())
+    app.state.workspace_cleanup_task = task
+    try:
+        yield
+    finally:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+        app.state.workspace_cleanup_task = None
 
 
-def create_app(registry: SearchRegistry | None = None) -> FastAPI:
+def create_app(
+    registry: SearchRegistry | None = None,
+    workspace_manager: WorkspaceManager | None = None,
+) -> FastAPI:
     """Create an application; tests may supply a preloaded registry."""
-    app = FastAPI(title="Semantic Search Engine API", version="1.0.0", lifespan=None if registry else lifespan)
+    app = FastAPI(title="Semantic Search Engine API", version="1.0.0", lifespan=lifespan)
     if registry is not None:
         app.state.registry = registry
+    app.state.workspace_manager = workspace_manager or WorkspaceManager()
     origins = [origin.strip() for origin in _setting("API_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",") if origin.strip()]
-    app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False, allow_methods=["GET", "POST"], allow_headers=["*"])
+    app.add_middleware(WorkspaceUploadBodyLimitMiddleware)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "X-Workspace-Token"],
+    )
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
@@ -122,6 +159,7 @@ def create_app(registry: SearchRegistry | None = None) -> FastAPI:
         return RedirectResponse(url="/docs")
 
     app.include_router(router)
+    app.include_router(workspace_router)
     return app
 
 

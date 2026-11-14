@@ -427,11 +427,32 @@ docker-compose*.yml    Default and optional GPU Compose configurations
 - The text chunker is a standalone utility; the current API searches papers
   from the prepared corpus rather than uploaded documents or passages.
 
+## Search your own documents
+
+Set `WORKSPACES_ENABLED=true` (the default) to create a private temporary workspace with `POST /workspaces`. The response contains a random URL-safe `workspace_id`; send it only in the `X-Workspace-Token` header to `/workspace`, `/workspace/documents`, `/workspace/documents/{document_id}`, and `/workspace/search`. The token is never part of a URL, so access logs do not reveal it. Upload one PDF, UTF-8 `.txt`, or UTF-8 `.md` file at a time. The application never saves uploaded originals or extracted text to disk; workspace text, passages, and indexes are kept in memory and expire after 60 minutes of inactivity by default.
+
+While a request is being received, the web framework may buffer multipart data in memory or in an operating-system temporary file, which is cleaned up when the request ends. A request-body cap of `MAX_UPLOAD_MB` plus 64 KiB bounds that buffering; the 64 KiB allowance accommodates multipart boundaries and part headers, while the actual uploaded file remains limited to `MAX_UPLOAD_MB`.
+
+Default limits are 20 workspaces, 10 files per workspace, 10 MB per file, 200 PDF pages, 1,000,000 extracted characters per document, and 3,000 passages per workspace. PDFs must have extractable text; OCR and images are not supported. All limits can be configured with `WORKSPACE_TTL_MINUTES`, `MAX_WORKSPACES`, `MAX_UPLOAD_MB`, `MAX_FILES_PER_WORKSPACE`, `MAX_PDF_PAGES`, `MAX_CHARS_PER_DOCUMENT`, and `MAX_PASSAGES_PER_WORKSPACE`.
+
+Workspace indexes are built by the server that receives the upload. BM25 is immediate; semantic, hybrid, and rerank indexing/search share the already-loaded models and global inference lock with arXiv search. Indexing cost scales with passage count and hardware; CPU and GPU installations will differ. Parsing occurs outside the model lock, but model work may wait behind another neural request.
+
+On Windows Command Prompt, create a workspace, copy its `workspace_id` value from the response, and set it in the current shell:
+
+```cmd
+curl.exe -s -X POST http://127.0.0.1:8000/workspaces
+set WORKSPACE_TOKEN=PASTE_workspace_id_HERE
+curl.exe -s -H "X-Workspace-Token: %WORKSPACE_TOKEN%" -F "file=@README.md" http://127.0.0.1:8000/workspace/documents
+curl.exe -s -H "X-Workspace-Token: %WORKSPACE_TOKEN%" http://127.0.0.1:8000/workspace
+curl.exe -s -X POST -H "X-Workspace-Token: %WORKSPACE_TOKEN%" -H "Content-Type: application/json" -d "{\"query\":\"semantic search\",\"method\":\"bm25\",\"k\":10}" http://127.0.0.1:8000/workspace/search
+curl.exe -i -X DELETE -H "X-Workspace-Token: %WORKSPACE_TOKEN%" http://127.0.0.1:8000/workspace/documents/PASTE_document_id_HERE
+curl.exe -i -X DELETE -H "X-Workspace-Token: %WORKSPACE_TOKEN%" http://127.0.0.1:8000/workspace
+```
+
 ## Future work
 
 - Evaluate score-normalised fusion as an alternative to the implemented
   weighted RRF.
-- Add passage-level search over uploaded documents using the existing chunker.
 - Add benchmark datasets such as NFCorpus.
 - Add search history backed by a database if persistence becomes necessary.
 

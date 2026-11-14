@@ -26,6 +26,7 @@ class RerankingRetriever(Retriever):
         batch_size: int = 32,
         *,
         reuse_indexed_first_stage: bool = False,
+        cross_encoder: CrossEncoder | None = None,
     ) -> None:
         if depth < 1 or batch_size < 1:
             raise ValueError("depth and batch_size must be positive.")
@@ -35,7 +36,7 @@ class RerankingRetriever(Retriever):
         self.batch_size = batch_size
         self.reuse_indexed_first_stage = reuse_indexed_first_stage
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.cross_encoder = CrossEncoder(cross_encoder_name, max_length=512, device=self.device)
+        self.cross_encoder = cross_encoder if cross_encoder is not None else CrossEncoder(cross_encoder_name, max_length=512, device=self.device)
         self.component_index_seconds: float | None = None
 
     def index(self, corpus: Mapping[str, Mapping[str, str]]) -> None:

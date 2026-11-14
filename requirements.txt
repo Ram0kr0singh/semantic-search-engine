@@ -9,3 +9,5 @@ tqdm==4.67.1
 fastapi
 uvicorn
 httpx
+pypdf==7.1.0
+python-multipart==0.0.33

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from contextlib import AbstractContextManager
 from pathlib import Path
 from typing import Mapping
 
@@ -21,24 +22,34 @@ class SentenceBertRetriever(Retriever):
         self,
         model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
         batch_size: int = 64,
+        model: SentenceTransformer | None = None,
     ) -> None:
         """Load ``model_name`` on CUDA when available, otherwise on CPU."""
         self.model_name = model_name
         self.batch_size = batch_size
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = SentenceTransformer(model_name, device=self.device)
+        self.model = model if model is not None else SentenceTransformer(model_name, device=self.device)
         self._document_ids: list[str] = []
         self._document_texts: list[str] = []
         self._index: faiss.Index | None = None
 
-    def index(self, corpus: Mapping[str, Mapping[str, str]]) -> None:
+    def index(
+        self,
+        corpus: Mapping[str, Mapping[str, str]],
+        *,
+        inference_lock: AbstractContextManager[None] | None = None,
+    ) -> None:
         """Encode document titles and bodies, then build a cosine-similarity index."""
         self._document_ids = list(corpus.keys())
         self._document_texts = [self._combine_document(corpus[doc_id]) for doc_id in self._document_ids]
         if not self._document_ids:
             raise ValueError("Cannot index an empty corpus.")
 
-        embeddings = self._encode(self._document_texts, show_progress_bar=True)
+        if inference_lock is None:
+            embeddings = self._encode(self._document_texts, show_progress_bar=True)
+        else:
+            with inference_lock:
+                embeddings = self._encode(self._document_texts, show_progress_bar=True)
         self._index = faiss.IndexFlatIP(embeddings.shape[1])
         self._index.add(embeddings)
 
