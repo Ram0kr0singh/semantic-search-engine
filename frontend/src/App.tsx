@@ -85,7 +85,7 @@ export default function App() {
         k: nextK,
         view: nextMode,
       };
-      if (history !== 'none') writeUrlState(state, history === 'replace');
+      if (history !== 'none') writeUrlState(history === 'replace');
 
       const id = ++searchId.current;
       const ids = nextMode === 'compare' ? [nextLeft, nextModel] : [nextModel];
@@ -125,19 +125,12 @@ export default function App() {
     []
   );
 
-  const replaceUrl = useCallback(
-    (changes: Partial<SubmittedSearch>) =>
-      writeUrlState(
-        { query, mode, model, left, k, view, ...changes },
-        true
-      ),
-    [query, mode, model, left, k, view]
-  );
+  const replaceUrl = useCallback(() => writeUrlState(true), []);
 
   const setQuery = useCallback(
     (value: string) => {
       setQueryState(value);
-      replaceUrl({ query: value });
+      replaceUrl();
     },
     [replaceUrl]
   );
@@ -145,7 +138,7 @@ export default function App() {
   const setModel = useCallback(
     (value: string) => {
       setModelState(value);
-      replaceUrl({ model: value });
+      replaceUrl();
     },
     [replaceUrl]
   );
@@ -153,7 +146,7 @@ export default function App() {
   const setLeft = useCallback(
     (value: string) => {
       setLeftState(value);
-      replaceUrl({ left: value });
+      replaceUrl();
     },
     [replaceUrl]
   );
@@ -161,7 +154,7 @@ export default function App() {
   const setK = useCallback(
     (value: ResultCount) => {
       setKState(value);
-      replaceUrl({ k: value });
+      replaceUrl();
     },
     [replaceUrl]
   );
@@ -181,17 +174,7 @@ export default function App() {
       if (query.trim()) {
         void executeSearch(query, nextMode, nextModel, left, k, 'replace');
       } else {
-        writeUrlState(
-          {
-            query,
-            mode: nextMode,
-            model: nextModel,
-            left,
-            k,
-            view: nextMode,
-          },
-          true
-        );
+        writeUrlState(true);
       }
     },
     [executeSearch, query, left, k]
@@ -201,19 +184,9 @@ export default function App() {
     (nextView: AppView) => {
       setViewState(nextView);
       if (nextView !== 'eval') setModeState(nextView);
-      writeUrlState(
-        {
-          query,
-          mode: nextView === 'search' ? 'search' : 'compare',
-          model,
-          left,
-          k,
-          view: nextView,
-        },
-        true
-      );
+      writeUrlState(true);
     },
-    [query, model, left, k]
+    []
   );
 
   const retryConnection = useCallback(async () => {
