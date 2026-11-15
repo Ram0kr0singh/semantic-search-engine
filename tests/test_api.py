@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 import pytest
 import json
 
-from backend.app.api.main import create_app
+from backend.app.api.main import _corpus_categories, create_app
 from backend.app.api.state import MethodInfo, SearchRegistry
 from backend.app.retrieval.base import SearchResult
 
@@ -30,6 +30,7 @@ def client() -> TestClient:
     registry = SearchRegistry(
         records=records,
         retrievers={method: FakeRetriever(results) for method in ("tfidf", "bm25", "hybrid-mpnet", "rerank-mpnet")},
+        categories=["cs.LG", "cs.AI", "stat.ML"],
         methods={
             "tfidf": MethodInfo("tfidf", "TF-IDF", ready=True),
             "bm25": MethodInfo("bm25", "BM25", ready=True, kind="keyword", description="Keyword ranking."),
@@ -46,11 +47,21 @@ def test_health_and_methods_shapes(client: TestClient) -> None:
     health = client.get("/health")
     assert health.status_code == 200
     assert health.json()["document_count"] == 2
+    assert health.json()["corpus_size"] == 2
+    assert health.json()["categories"] == ["cs.LG", "cs.AI", "stat.ML"]
     assert health.json()["api_version"] == "1.0.0"
     methods = client.get("/methods")
     assert methods.status_code == 200
     assert {"id", "display_name", "model_name", "ready", "kind", "description"} <= set(methods.json()[0])
     assert {method["id"] for method in methods.json()} == {"tfidf", "bm25", "sbert-minilm", "sbert-mpnet", "hybrid-mpnet", "rerank-mpnet"}
+
+
+def test_corpus_categories_use_the_builder_report(tmp_path) -> None:
+    corpus_path = tmp_path / "corpus.jsonl"
+    stats_path = corpus_path.with_suffix(".stats.json")
+    stats_path.write_text(json.dumps({"requested_categories": ["cs.AI", "stat.ML"]}), encoding="utf-8")
+
+    assert _corpus_categories(corpus_path, {}) == ["cs.AI", "stat.ML"]
 
 
 def test_root_redirects_to_docs(client: TestClient) -> None:

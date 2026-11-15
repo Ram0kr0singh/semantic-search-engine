@@ -177,7 +177,7 @@ export function BrandLoveNavDrawer({
             </div>
             <div className="flex justify-between">
               <span>DOCUMENTS:</span>
-              <span className="text-[var(--text)] font-bold">{health?.document_count.toLocaleString() ?? '30,000'}</span>
+              <span className="text-[var(--text)] font-bold">{(health?.corpus_size ?? health?.document_count)?.toLocaleString() ?? '—'}</span>
             </div>
             <div className="flex justify-between">
               <span>HARDWARE:</span>

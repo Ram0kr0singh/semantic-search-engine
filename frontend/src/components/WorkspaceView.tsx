@@ -64,8 +64,8 @@ const SEARCH_METHODS: Array<{
   },
   {
     id: 'rerank',
-    name: 'Best match, slower',
-    description: 'Uses a deeper two-stage model to re-score the best matches; takes slightly longer.',
+    name: 'Re-ranked (slower, experimental)',
+    description: 'Re-checks the top matches with a second model. It can improve or worsen the order depending on the documents.',
   },
 ];
 
@@ -1039,6 +1039,7 @@ export function WorkspaceView() {
                         key={`${result.document_id}-${result.passage_index}-${result.rank}`}
                         item={result}
                         query={searchSubmittedQuery}
+                        isReranked={searchMethod === 'rerank'}
                       />
                     ))}
                   </div>

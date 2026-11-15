@@ -441,6 +441,7 @@ export default function App() {
                         isLoading={isAnyLoading}
                         queryText={displayed?.query ?? query}
                         methodName={rightMethod?.display_name}
+                        isReranked={rightMethod?.kind === 'reranked'}
                       />
                     </div>
                   </div>
@@ -451,6 +452,7 @@ export default function App() {
                       onSelectResult={(item) => setDetailItem(item)}
                       activeRank={activeRank}
                       onHoverRank={setActiveRank}
+                      isReranked={rightMethod?.kind === 'reranked'}
                     />
                   </div>
                 )}

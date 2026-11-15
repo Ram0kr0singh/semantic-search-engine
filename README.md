@@ -23,8 +23,8 @@ keyword overlap. It compares a TF-IDF baseline with Sentence-BERT embeddings
 and cosine similarity over a FAISS index. The API returns ranked papers with
 scores, and the evaluation harness measures retrieval on two public BEIR
 benchmarks. The web application also demonstrates search over a deterministic
-30,000-paper arXiv corpus, with a React interface for comparing methods side by
-side.
+arXiv corpus whose size and categories are configurable, with a React interface
+for comparing methods side by side.
 
 ## Key results
 
@@ -84,8 +84,8 @@ configuration; timings vary run to run.**
 
 ## Screenshots
 
-There are no screenshot files in `docs/images/` in this checkout, so no image
-links are listed here.
+Screenshots in [`docs/images/`](docs/images/) are static examples; current
+corpus size and category wording are supplied at runtime by `/health`.
 
 ## Features
 
@@ -97,8 +97,8 @@ links are listed here.
 - Evaluation harness reporting Recall@1/5/10/100, MRR@10, nDCG@10, index build
   time, and average query latency.
 - Registry and loaders for BEIR SciFact and FiQA.
-- Persistent Sentence-BERT indexes that validate the model identity and index
-  metadata when loaded.
+- Persistent Sentence-BERT indexes that validate the model identity and the
+  corpus document count and IDs when loaded.
 - A sentence-aware, overlapping text chunking utility for long documents; it
   is not currently wired into the search API.
 - FastAPI endpoints for health, methods, search, documents, and the evaluation
@@ -114,7 +114,7 @@ links are listed here.
 flowchart LR
   subgraph OFFLINE["Offline: prepare corpus and indexes"]
     HF["arXiv metadata on Hugging Face"] --> BC["scripts/build_corpus.py"]
-    BC --> JSONL["30,000-paper JSONL corpus"]
+    BC --> JSONL["Size- and category-specific JSONL corpus"]
     JSONL --> EMB["Sentence-BERT encoder: MiniLM or MPNet"]
     EMB --> FAISS["Saved FAISS index and metadata"]
   end
@@ -135,9 +135,10 @@ flowchart LR
   SNAP --> API
 ```
 
-The offline demo workflow streams the arXiv metadata, builds a local JSONL
-corpus, encodes documents, and saves the Sentence-BERT FAISS indexes. At API
-startup, TF-IDF and BM25 are built and available saved dense indexes are loaded.
+The offline demo workflow streams arXiv metadata, builds a local JSONL corpus
+and coverage report, encodes documents, and saves the Sentence-BERT FAISS
+indexes in corpus-specific folders. At API startup, TF-IDF and BM25 are built
+and available matching saved dense indexes are loaded.
 The API also exposes equal-weight BM25 + MPNet RRF hybrid search and MPNet
 cross-encoder reranking when their required models are available. Restart the
 API after configuration changes; it does not auto-reload.
@@ -170,22 +171,30 @@ which uses PyTorch. The retriever uses CUDA when the installed PyTorch build
 can access it and falls back to CPU otherwise. FAISS is installed as
 `faiss-cpu`.
 
-Build the demo corpus and both saved Sentence-BERT indexes:
+Build the default demo corpus and both saved Sentence-BERT indexes. The default
+corpus is named `data/arxiv_60000_91cee96f.jsonl`; its report is
+`data/arxiv_60000_91cee96f.stats.json`. The index folders include the corpus
+name so the legacy corpus and indexes are not overwritten:
 
 ```powershell
-python -m scripts.build_corpus
-python -m scripts.search_demo --query "how can neural networks understand human language?" --rebuild
-python -m scripts.search_demo --model sentence-transformers/all-mpnet-base-v2 --index-dir data/index_mpnet --query "how can neural networks understand human language?" --rebuild
+python -m scripts.build_corpus --size 60000 --categories cs.AI,cs.CL,cs.LG,cs.IR,cs.CV,cs.RO,cs.CR,cs.SE,cs.DB,cs.DC,cs.HC,cs.NI,cs.NE
+python -m scripts.search_demo --method sbert --model sentence-transformers/all-MiniLM-L6-v2 --corpus data/arxiv_60000_91cee96f.jsonl --index-dir data/index_minilm_arxiv_60000_91cee96f --query "how can neural networks understand human language?" --rebuild
+python -m scripts.search_demo --method sbert --model sentence-transformers/all-mpnet-base-v2 --corpus data/arxiv_60000_91cee96f.jsonl --index-dir data/index_mpnet_arxiv_60000_91cee96f --query "how can neural networks understand human language?" --rebuild
 ```
 
-Start the API from the repository root:
+Point the API at the new corpus and indexes, then start it from the repository
+root:
 
 ```powershell
+$env:ARXIV_CORPUS_PATH = "data\arxiv_60000_91cee96f.jsonl"
+$env:ARXIV_MINILM_INDEX_DIR = "data\index_minilm_arxiv_60000_91cee96f"
+$env:ARXIV_MPNET_INDEX_DIR = "data\index_mpnet_arxiv_60000_91cee96f"
 python -m uvicorn backend.app.api.main:app --port 8000
 ```
 
 Do not add `--reload`: reloading starts another process and reloads the models.
-Startup can take tens of seconds while the corpus, indexes, and models load.
+Startup loads the configured corpus, matching saved indexes, and models; its
+duration depends on the selected configuration and hardware.
 Keep the API running, then open a second terminal and start the frontend:
 
 ```powershell
@@ -210,10 +219,15 @@ starting Docker. The containers mount `./data` from the host and do not build
 the corpus or indexes:
 
 ```powershell
-python -m scripts.build_corpus
-python -m scripts.search_demo --query "how can neural networks understand human language?" --rebuild
-python -m scripts.search_demo --model sentence-transformers/all-mpnet-base-v2 --index-dir data/index_mpnet --query "how can neural networks understand human language?" --rebuild
+python -m scripts.build_corpus --size 60000 --categories cs.AI,cs.CL,cs.LG,cs.IR,cs.CV,cs.RO,cs.CR,cs.SE,cs.DB,cs.DC,cs.HC,cs.NI,cs.NE
+python -m scripts.search_demo --method sbert --model sentence-transformers/all-MiniLM-L6-v2 --corpus data/arxiv_60000_91cee96f.jsonl --index-dir data/index_minilm_arxiv_60000_91cee96f --query "how can neural networks understand human language?" --rebuild
+python -m scripts.search_demo --method sbert --model sentence-transformers/all-mpnet-base-v2 --corpus data/arxiv_60000_91cee96f.jsonl --index-dir data/index_mpnet_arxiv_60000_91cee96f --query "how can neural networks understand human language?" --rebuild
 ```
+
+`docker-compose.yml` defaults to those new paths. To retain an older corpus,
+set `ARXIV_CORPUS_PATH`, `ARXIV_MINILM_INDEX_DIR`, and
+`ARXIV_MPNET_INDEX_DIR` together to the matching old corpus and index paths
+before starting the API or Compose.
 
 Start the UI and API:
 
@@ -253,7 +267,7 @@ running.
 
 | Method and path | Purpose |
 | --- | --- |
-| `GET /health` | Reports API status, corpus size, methods, and embedding device. |
+| `GET /health` | Reports API status, corpus size and configured categories, methods, and embedding device. |
 | `GET /methods` | Lists methods, readiness, kind, description, and available benchmark values. |
 | `POST /search` | Searches with an optional method and result count. |
 | `GET /documents/{id}` | Returns a full record from the arXiv demo corpus. |
@@ -377,7 +391,7 @@ pytest traversing the local Hugging Face model cache under `data/`.
 .\.venv\Scripts\python.exe -m pytest tests
 ```
 
-The verified result is 71 passing backend tests. Run frontend checks from
+The verified result is 142 passing backend tests. Run frontend checks from
 `frontend/`:
 
 ```powershell
@@ -386,7 +400,7 @@ npm run build
 npm run lint
 ```
 
-The verified frontend test result is 42 passing tests. The production build
+The verified frontend test result is 98 passing tests. The production build
 and lint checks also pass.
 
 ## Project structure
@@ -408,9 +422,30 @@ docker-compose*.yml    Default and optional GPU Compose configurations
 
 - Keyword, dense, fused RRF, and cross-encoder scores are not comparable
   across methods; compare rankings and benchmark metrics instead.
-- The demo corpus is a deterministic sample of 30,000 papers from the public
-  `yacud1/arxiv-bge-base-818k` arXiv metadata dataset. The existing repository
-  documentation records its license as CC0-1.0.
+- The arXiv source is the `metadata.parquet` split of
+  [`yacud1/arxiv-bge-base-818k`](https://huggingface.co/datasets/yacud1/arxiv-bge-base-818k),
+  which contains arXiv IDs, titles, abstracts, authors, categories, and update
+  dates. The dataset card specifies **CC0 1.0** for its metadata and abstracts.
+- The default corpus has 60,000 papers. This is a larger demo than the previous
+  30,000-paper sample while still sampling rather than embedding the full
+  817,961-row source dataset.
+- Default categories, in display order: `cs.AI`, `cs.CL`, `cs.LG`, `cs.IR`,
+  `cs.CV`, `cs.RO`, `cs.CR`, `cs.SE`, `cs.DB`, `cs.DC`, `cs.HC`, `cs.NI`, and
+  `cs.NE`. A paper is included when **any** of its listed categories matches,
+  including a matching cross-list; this is not restricted to its first-listed
+  category. `stat.ML` is accepted with `--categories` but is not a default;
+  `stat.CO` and `stat.ME` are also not defaults.
+- Sampling uses reservoir sampling with fixed seed `42`, after category
+  filtering and deduplication by arXiv ID, then sorts selected records by ID
+  for deterministic JSONL output. The default filename includes the size and
+  the first eight hex characters of SHA-256 over the sorted category list.
+  `python -m scripts.build_corpus --size 60000 --categories cs.AI,cs.CL,cs.LG,cs.IR,cs.CV,cs.RO,cs.CR,cs.SE,cs.DB,cs.DC,cs.HC,cs.NI,cs.NE`
+  builds it; `--categories` and `--size` can be changed as needed. The script
+  writes a neighboring `.stats.json` report with source category availability,
+  sampled per-category and first-listed-category counts, year counts, and
+  total, and refuses to overwrite an existing output.
+- All benchmark numbers in this README are from SciFact and FiQA and are
+  independent of the arXiv demo corpus.
 - General-purpose embedding models can return topical matches rather than
   intended meaning, particularly for out-of-domain queries.
 - The API exposes fixed equal-weight RRF MPNet hybrid fusion and MPNet-first-
@@ -424,16 +459,16 @@ docker-compose*.yml    Default and optional GPU Compose configurations
   BM25 weight on a separate development split; no test-query tuning is used.
 - PostgreSQL is not used: the demo corpus is small, read-only for search, and
   loaded into memory by the API.
-- The arXiv corpus search searches papers from the prepared 30,000-paper corpus,
-  while the "Your documents" workspace feature uses text chunking to chunk
-  and index uploaded documents dynamically in memory.
+- The arXiv corpus size and category description shown in the UI come from
+  `/health`; the "Your documents" workspace feature indexes uploaded
+  documents dynamically in memory.
 
 ## Search your own documents
 
 The web application includes a **Your documents** view (accessible via the header navigation) that lets non-technical visitors upload files and search within them.
 
 - **Drop zone & uploads:** Upload PDF, plain text (`.txt`), or Markdown (`.md`) files one by one or in batches via drag and drop or the file picker. Workspaces are created lazily upon the first upload so opening the view never creates unnecessary sessions. Files are queued and processed sequentially with visible progress indicators ("Uploading", "Reading and indexing", "Done", or clear plain-language error guidance).
-- **Search approaches:** Search inside uploaded documents using Meaning match (semantic Sentence-BERT, default), Exact words (BM25), Meaning + exact words (hybrid), or Best match, slower (cross-encoder reranking).
+- **Search approaches:** Search inside uploaded documents using Meaning match (semantic Sentence-BERT, recommended default), Exact words (BM25), Meaning + exact words (hybrid), or Re-ranked (slower, experimental; cross-encoder reranking).
 - **Results & highlighting:** Results show document names, page numbers when available, relevance scores, and safe text query-word highlighting (rendered strictly as text spans without dangerous HTML injection), with expandable passages.
 - **Privacy & lifecycle:** Uploaded files and extracted text are not saved to disk by this app. Workspace text, passages, and search indexes reside in temporary server memory and expire after about an hour of inactivity. While a multipart request is being received, the web framework may buffer data in memory or in a temporary operating-system file, which is cleaned up as soon as the request ends. Visitors can remove individual documents or click "Delete everything" with a confirmation step to immediately erase all documents, indexes, and session tokens. Tokens are stored in browser `sessionStorage` (with in-memory fallback) and never appear in URLs or DOM text.
 
@@ -457,11 +492,11 @@ curl.exe -i -X DELETE -H "X-Workspace-Token: %WORKSPACE_TOKEN%" http://127.0.0.1
 curl.exe -i -X DELETE -H "X-Workspace-Token: %WORKSPACE_TOKEN%" http://127.0.0.1:8000/workspace
 ```
 
-## "Semantic Score" Visualization (Brand Love Score Inspiration)
+## "Semantic Score" Visualization
 
-The search interface features an interactive "Semantic Score" visualization strongly inspired by the award-winning design language of *Brand Love Score* (Awwwards SOTD by Drumroll):
+The search interface uses an original visual style inspired by an award-winning data-visualization site. It does not copy that site's copy or assets:
 
-- **Overlapping Bell Curves:** Search results are plotted as parametric Gaussian bell curves sharing a common baseline. Height reflects normalized semantic similarity scores.
+- **Overlapping Bell Curves:** Search results are plotted as parametric Gaussian bell curves sharing a common baseline. Height reflects scores normalized within the current result list.
 - **Color Gradient Interpolation:** Curves smoothly interpolate from hot pink-red (`#ff3d5a`) at Rank 1 to deep violet (`#8a2be2`) at Rank $K$.
 - **Interactive Flag Tooltip:** Hovering a curve highlights it, dims all other curves to ~25% opacity, and brings up the signature angular red-and-dark flag showing the score and document title.
 - **Numbered Left Panel:** The top 5 results are listed in uppercase, letter-spaced typography (`1. TITLE`, `2. TITLE`), with synchronized hover and click interactions.

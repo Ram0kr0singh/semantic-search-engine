@@ -39,7 +39,7 @@ export function TopList({
                 onFocus={() => onHoverRank(item.rank)}
                 onMouseLeave={() => onHoverRank(null)}
                 onBlur={() => onHoverRank(null)}
-                className={`group flex items-center text-left text-[11px] sm:text-xs font-bold tracking-[0.16em] uppercase cursor-pointer transition-all duration-150 rounded px-1 py-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--bl-accent-hot,#ff3d5a)] max-w-full truncate ${
+                className={`group flex items-center text-left text-xs font-bold cursor-pointer transition-all duration-150 rounded px-1 py-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--bl-accent-hot,#ff3d5a)] max-w-full truncate ${
                   isActive
                     ? 'text-[var(--text)] scale-[1.02]'
                     : 'text-[var(--text-muted)] hover:text-[var(--text)]'

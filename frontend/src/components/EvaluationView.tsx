@@ -163,6 +163,7 @@ function Chart({
             </div>
 
             <div className="space-y-2">
+              <p className="text-xs text-[var(--text-muted)]">difference vs baseline (raw)</p>
               {activeMetrics.map((key) => {
                 const val = run[key] ?? 0;
                 const baseVal = baselineRun ? (baselineRun[key] ?? 0) : val;
@@ -479,6 +480,9 @@ export function EvaluationView() {
 
             {/* KPI Summary Tiles */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              <p className="sm:col-span-3 text-xs text-[var(--text-muted)]">
+                Best = highest raw value in this table. This is not a statistically significant difference; see docs/analysis/analysis.md.
+              </p>
               {/* Tile 1: Best nDCG@10 */}
               <div
                 className="relative overflow-hidden rounded-xl p-4 bg-gradient-to-br from-[#ff3d5a]/10 via-[var(--surface-raised)]/60 to-[var(--surface)] border border-[#ff3d5a]/25 shadow-sm transition-all hover:border-[#ff3d5a]/50 cursor-pointer"

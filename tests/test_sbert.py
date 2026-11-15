@@ -50,7 +50,7 @@ def test_sbert_save_load_round_trip(tmp_path) -> None:
     original.save(tmp_path / "index")
 
     loaded = SentenceBertRetriever()
-    loaded.load(tmp_path / "index")
+    loaded.load(tmp_path / "index", corpus)
     actual = loaded.search("reducing AWS spend", k=2)
 
     assert [(item.doc_id, item.score) for item in actual] == [
@@ -68,4 +68,22 @@ def test_sbert_load_rejects_model_mismatch(tmp_path) -> None:
     (index_dir / "index.faiss").write_bytes(b"")
 
     with pytest.raises(ValueError, match="another-model"):
-        SentenceBertRetriever().load(index_dir)
+        SentenceBertRetriever().load(index_dir, {})
+
+
+def test_sbert_load_rejects_index_for_another_corpus(tmp_path) -> None:
+    index_dir = tmp_path / "index"
+    index_dir.mkdir()
+    (index_dir / "metadata.json").write_text(
+        json.dumps({
+            "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+            "document_ids": ["original"],
+            "document_texts": ["Original paper"],
+            "document_count": 1,
+        }),
+        encoding="utf-8",
+    )
+    (index_dir / "index.faiss").write_bytes(b"")
+
+    with pytest.raises(ValueError, match="different corpus.*Rebuild it"):
+        SentenceBertRetriever().load(index_dir, {"replacement": {"text": "Other paper"}})

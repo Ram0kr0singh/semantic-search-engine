@@ -53,9 +53,20 @@ export function SearchControls({
     onModeChange(newMode, nextModel);
   };
 
-  const paperCount = health?.document_count
-    ? `${health.document_count.toLocaleString()}-paper sample of arXiv computer-science research`
-    : '30,000-paper sample of arXiv computer-science research';
+  const corpusSize = health?.corpus_size ?? health?.document_count;
+  const categories = health?.categories ?? [];
+  const subject = categories.some((category) => category.startsWith('stat.'))
+    ? 'computer science and statistics'
+    : categories.length
+      ? 'computer science'
+      : 'arXiv research';
+  const shownCategories = categories.slice(0, 5);
+  const categoryDescription = categories.length
+    ? ` (${shownCategories.join(', ')}${categories.length > shownCategories.length ? ` and ${categories.length - shownCategories.length} more` : ''})`
+    : '';
+  const corpusDescription = corpusSize === undefined
+    ? 'Sample of arXiv papers'
+    : `Sample of ${corpusSize.toLocaleString()} arXiv papers in ${subject}${categoryDescription}`;
   const device = health?.embedding_device?.toUpperCase() ?? 'CUDA';
 
   return (
@@ -70,26 +81,28 @@ export function SearchControls({
         />
         <p className="text-xs sm:text-sm uppercase tracking-wide text-[var(--text-muted)] max-w-2xl mx-auto leading-relaxed font-sans">
           Describe what you are looking for in everyday language. We will find
-          relevant computer-science papers for you.
+          relevant {subject} papers for you.
         </p>
 
         {/* Subtle Top Metadata */}
-        <div className="flex items-center justify-center gap-2 text-[10px] uppercase font-mono tracking-[0.2em] text-[var(--text-muted)]">
+        <div className="flex items-center justify-center gap-3 text-xs font-mono uppercase tracking-[0.12em] text-[var(--text-muted)]">
           <span
-            className="w-1.5 h-1.5 rounded-full bg-[var(--bl-accent-hot,#ff3d5a)] shadow-[0_0_8px_rgba(255,61,90,0.8)]"
+            className="w-1.5 h-1.5 shrink-0 self-center rounded-full bg-[var(--bl-accent-hot,#ff3d5a)] shadow-[0_0_8px_rgba(255,61,90,0.8)]"
             aria-hidden="true"
           />
-          <span>
+          <span className="text-center leading-relaxed">
             {health
-              ? `ARXIV CS CORPUS · ${paperCount} · ${device}`
-              : 'ARXIV CS CORPUS · 30,000 PAPERS · NEURAL SEARCH'}
+              ? `${corpusDescription} · ${device}`
+              : 'ARXIV PAPER CORPUS · NEURAL SEARCH'}
           </span>
         </div>
 
         {/* Minimal Wide Brand Love Search Input Form */}
         <form onSubmit={(e) => onSubmit(e)} className="w-full max-w-3xl mx-auto">
           <label htmlFor="search-query-input" className="sr-only">
-            Search 30,000 computer science research papers
+            {corpusSize === undefined
+              ? 'Search arXiv papers'
+              : `Search ${corpusSize.toLocaleString()} arXiv papers`}
           </label>
           <div className="relative flex items-center bg-[var(--surface)] border border-[var(--border)] focus-within:border-[var(--bl-accent-hot,#ff3d5a)] focus-within:shadow-[0_0_20px_rgba(255,61,90,0.2)] rounded-sm p-1.5 sm:p-2 transition-all">
             <div
@@ -269,7 +282,7 @@ export function SearchControls({
               <li><strong>Exact wording match</strong> finds papers using the same important words.</li>
               <li><strong>Meaning match</strong> can find related papers even when they use different wording.</li>
               <li><strong>Combined match</strong> uses both approaches.</li>
-              <li><strong>Extra review</strong> takes longer but rechecks the best matches.</li>
+              <li><strong>Re-ranked</strong> takes longer and rechecks the top matches with a second model.</li>
             </ul>
           </details>
         </div>
@@ -355,7 +368,7 @@ function MethodSelect({
     ['keyword', 'Match the same words'],
     ['semantic', 'Match the meaning'],
     ['hybrid', 'Use words and meaning'],
-    ['reranked', 'Review the best matches again'],
+    ['reranked', 'Re-rank with a second model'],
   ];
 
   return (
@@ -395,7 +408,7 @@ function methodChoiceLabel(method: Method): string {
     'sbert-minilm': 'Meaning match (faster)',
     'sbert-mpnet': 'Meaning match (recommended)',
     'hybrid-mpnet': 'Combined wording + meaning match',
-    'rerank-mpnet': 'Extra review of the best matches',
+    'rerank-mpnet': 'Re-ranked (slower, experimental)',
   };
   return labels[method.id] ?? method.display_name;
 }
@@ -407,7 +420,7 @@ function methodExplanation(method: Method): string {
     'sbert-minilm': 'Looks for papers with a similar meaning, even if they use different words. This is the faster meaning-based option.',
     'sbert-mpnet': 'Looks for papers with a similar meaning, even if they use different words. This is a good default for most searches.',
     'hybrid-mpnet': 'Combines word matching and meaning matching, so it can catch papers that either approach would find.',
-    'rerank-mpnet': 'Finds meaning-based matches first, then carefully reviews the strongest candidates to improve their order.',
+    'rerank-mpnet': 'Re-checks the top matches with a second model. It can improve or worsen the order depending on the documents.',
   };
   return explanations[method.id] ?? method.description;
 }

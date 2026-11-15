@@ -11,16 +11,27 @@ const mockMethods: Method[] = [
   { id: 'hybrid-mpnet', display_name: 'Hybrid (BM25 + MPNet)', model_name: null, ready: true, kind: 'hybrid', description: 'Combines BM25 and MPNet rankings.' },
   { id: 'rerank-mpnet', display_name: 'Rerank (MPNet + cross-encoder)', model_name: null, ready: true, kind: 'reranked', description: 'Reranks MPNet results with a cross-encoder.' },
 ];
-const mockHealth = { status: 'ok', document_count: 30000, methods: mockMethods, embedding_device: 'cuda', api_version: '1.0.0' };
+const mockHealth = {
+  status: 'ok',
+  document_count: 60000,
+  corpus_size: 60000,
+  categories: ['cs.AI', 'cs.CL', 'cs.LG', 'cs.IR', 'cs.CV', 'cs.RO', 'cs.CR', 'cs.SE', 'cs.DB', 'cs.DC', 'cs.HC', 'cs.NI', 'cs.NE'],
+  methods: mockMethods,
+  embedding_device: 'cuda',
+  api_version: '1.0.0',
+};
 
 function response(method: string, id: string, title: string, took_ms = 15.4) {
   return { query: 'query', method, k: 5, took_ms, results: [{ rank: 1, score: 0.5, id, title, snippet: `Snippet for ${title}`, categories: ['cs.AI'], year: 2024 }] };
 }
 function json(data: unknown, status = 200) { return Promise.resolve(new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } })); }
-function installApi(search = (method: string) => json(response(method, `${method}-paper`, `${method} paper`))) {
+function installApi(
+  search = (method: string) => json(response(method, `${method}-paper`, `${method} paper`)),
+  health = mockHealth
+) {
   const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
-    if (url.endsWith('/health')) return json(mockHealth);
+    if (url.endsWith('/health')) return json(health);
     if (url.endsWith('/methods')) return json(mockMethods);
     if (url.endsWith('/evaluation')) return json({ runs: [], hardware_note: 'test', generated_at: 'now' });
     if (url.endsWith('/search')) return search(JSON.parse(String(init?.body)).method);
@@ -28,9 +39,9 @@ function installApi(search = (method: string) => json(response(method, `${method
   });
   vi.stubGlobal('fetch', fetchMock); return fetchMock;
 }
-async function ready() { await screen.findByText(/Online · 30,000 papers · CUDA/i); }
+async function ready() { await screen.findByText(/Online · 60,000 papers · CUDA/i); }
 async function search(query = 'neural retrieval') {
-  const input = await screen.findByRole('textbox', { name: /search 30,000/i });
+  const input = await screen.findByRole('textbox', { name: /search 60,000/i });
   fireEvent.change(input, { target: { value: query } });
   fireEvent.click(within(input.closest('form')!).getByRole('button', { name: 'Search' }));
 }
@@ -47,9 +58,24 @@ describe('App Component', () => {
     expect(screen.getByRole('button', { name: /retry connection/i })).toBeInTheDocument();
   });
 
+  it('describes the corpus using the backend size and collapses a long category list', async () => {
+    installApi();
+    render(<App />);
+    await ready();
+    expect(screen.getByText(/Sample of 60,000 arXiv papers in computer science \(cs\.AI, cs\.CL, cs\.LG, cs\.IR, cs\.CV and 8 more\)/)).toBeInTheDocument();
+  });
+
+  it('describes computer science and statistics when the backend reports a statistics category', async () => {
+    installApi(undefined, { ...mockHealth, categories: ['cs.AI', 'stat.ML'] });
+    render(<App />);
+    await ready();
+    expect(screen.getByText(/Sample of 60,000 arXiv papers in computer science and statistics \(cs\.AI, stat\.ML\)/)).toBeInTheDocument();
+    expect(screen.getByText(/relevant computer science and statistics papers for you/i)).toBeInTheDocument();
+  });
+
   it('starts blank, cleans legacy URL state, and never submits a previous search', async () => {
     window.history.replaceState(null, '', '/?q=old&mode=compare&model=tfidf'); const fetchMock = installApi(); render(<App />); await ready();
-    expect(screen.getByRole('textbox', { name: /search 30,000/i })).toHaveValue(''); expect(window.location.search).toBe('');
+    expect(screen.getByRole('textbox', { name: /search 60,000/i })).toHaveValue(''); expect(window.location.search).toBe('');
     expect(screen.getByLabelText('Search approach:')).toHaveValue('sbert-mpnet');
     expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/search'))).toHaveLength(0);
   });
@@ -91,9 +117,20 @@ describe('App Component', () => {
     expect(within(screen.getByLabelText('Search approach:')).getByRole('option', { name: /Meaning match \(faster\).*Model weights/i })).toBeDisabled(); fireEvent.change(screen.getByLabelText('Search approach:'), { target: { value: 'rerank-mpnet' } }); expect(screen.getByText(/takes longer because it reviews the top 100/i)).toBeInTheDocument();
   });
 
+  it('labels negative rerank output as a relevance score without changing its sign', async () => {
+    installApi((method) => json({ ...response(method, 'reranked', 'Negative rerank score'), results: [{ rank: 1, score: -10.955, id: 'reranked', title: 'Negative rerank score', snippet: 'A result.', categories: [], year: 2024 }] }));
+    render(<App />); await ready();
+    fireEvent.change(screen.getByLabelText('Search approach:'), { target: { value: 'rerank-mpnet' } });
+    await search('negative score');
+    expect(await screen.findByText('Relevance score: -10.955')).toBeInTheDocument();
+    fireEvent.click(screen.getByTitle('List View'));
+    expect(screen.getByText('Relevance score')).toBeInTheDocument();
+    expect(screen.getByText('-10.955')).toBeInTheDocument();
+  });
+
   it('blocks equal comparison methods and preserves submitted results until Search is clicked again', async () => {
     installApi(); render(<App />); await ready(); await compare(); await search(); expect(await screen.findByText('tfidf paper')).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('First approach:'), { target: { value: 'sbert-mpnet' } }); expect(screen.getByText('Choose two different methods to compare.')).toBeInTheDocument(); expect(within(screen.getByRole('textbox', { name: /search 30,000/i }).closest('form')!).getByRole('button', { name: 'Search' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('First approach:'), { target: { value: 'sbert-mpnet' } }); expect(screen.getByText('Choose two different methods to compare.')).toBeInTheDocument(); expect(within(screen.getByRole('textbox', { name: /search 60,000/i }).closest('form')!).getByRole('button', { name: 'Search' })).toBeDisabled();
     fireEvent.change(screen.getByLabelText('First approach:'), { target: { value: 'bm25' } }); expect(screen.getByText('tfidf paper')).toBeInTheDocument(); expect(screen.getByText('Choices changed — select Search to update the results.')).toBeInTheDocument();
   });
 
@@ -109,7 +146,7 @@ describe('App Component', () => {
 
   it('starts a new blank search when navigating back or reopening the home page', async () => {
     installApi(); render(<App />); await ready(); await search('history'); expect(await screen.findByText('sbert-mpnet paper')).toBeInTheDocument(); window.dispatchEvent(new PopStateEvent('popstate'));
-    await waitFor(() => expect(screen.getByRole('textbox', { name: /search 30,000/i })).toHaveValue('')); expect(screen.queryByText('sbert-mpnet paper')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('textbox', { name: /search 60,000/i })).toHaveValue('')); expect(screen.queryByText('sbert-mpnet paper')).not.toBeInTheDocument();
   });
 
   it('keeps results visible after changing a setting and tells the user to search again', async () => {
@@ -159,7 +196,7 @@ describe('App Component', () => {
 
   it('disables Search for empty and whitespace-only queries, and enforces the 500-character limit', async () => {
     installApi(); render(<App />); await ready();
-    const input = screen.getByRole('textbox', { name: /search 30,000/i });
+    const input = screen.getByRole('textbox', { name: /search 60,000/i });
     const button = within(input.closest('form')!).getByRole('button', { name: 'Search' });
     expect(button).toBeDisabled();
     fireEvent.change(input, { target: { value: '   ' } }); expect(button).toBeDisabled();
@@ -180,7 +217,7 @@ describe('App Component', () => {
     installApi(); render(<App />); await ready(); await search('home reset');
     expect(await screen.findByText('sbert-mpnet paper')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /go to home page/i }));
-    expect(screen.getByRole('textbox', { name: /search 30,000/i })).toHaveValue('');
+    expect(screen.getByRole('textbox', { name: /search 60,000/i })).toHaveValue('');
     expect(screen.queryByText('sbert-mpnet paper')).not.toBeInTheDocument();
     expect(window.location.search).toBe('');
   });
@@ -189,6 +226,6 @@ describe('App Component', () => {
     installApi(); render(<App />); await ready();
     fireEvent.click(screen.getByRole('button', { name: 'BERT' }));
     expect(await screen.findByText('sbert-mpnet paper')).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: /search 30,000/i })).toHaveValue('BERT');
+    expect(screen.getByRole('textbox', { name: /search 60,000/i })).toHaveValue('BERT');
   });
 });

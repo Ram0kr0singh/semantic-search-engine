@@ -9,6 +9,7 @@ from time import perf_counter
 from backend.app.data.arxiv import load_arxiv_corpus
 from backend.app.retrieval.sbert import SentenceBertRetriever
 from backend.app.retrieval.tfidf import TfidfRetriever
+from scripts.build_corpus import default_corpus_path
 
 
 def print_results(query: str, results: list[object], records: dict[str, dict[str, object]]) -> None:
@@ -28,20 +29,23 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--method", choices=("tfidf", "sbert"), default="sbert")
     parser.add_argument("--model", default="sentence-transformers/all-MiniLM-L6-v2")
-    parser.add_argument("--corpus", type=Path, default=Path("data/arxiv_cs_30000.jsonl"))
-    parser.add_argument("--index-dir", type=Path, default=Path("data/arxiv_sbert_index"))
+    parser.add_argument("--corpus", type=Path, default=default_corpus_path())
+    parser.add_argument("--index-dir", type=Path, help="Saved index directory (defaults to a model-specific folder for this corpus).")
     parser.add_argument("--rebuild", action="store_true", help="Ignore any saved SBERT index.")
     parser.add_argument("--query", help="Run one query without entering the prompt.")
     args = parser.parse_args()
     if not args.corpus.is_file():
         parser.error(f"Corpus not found: {args.corpus}. Run `python -m scripts.build_corpus` first.")
+    if args.index_dir is None:
+        model_folder = "mpnet" if "mpnet" in args.model.lower() else "minilm"
+        args.index_dir = Path("data") / f"index_{model_folder}_{args.corpus.stem}"
 
     corpus, records = load_arxiv_corpus(args.corpus)
     start = perf_counter()
     if args.method == "sbert":
         retriever = SentenceBertRetriever(model_name=args.model)
         if not args.rebuild and (args.index_dir / "metadata.json").is_file():
-            retriever.load(args.index_dir)
+            retriever.load(args.index_dir, corpus)
             action = "Loaded"
         else:
             retriever.index(corpus)

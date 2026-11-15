@@ -5,9 +5,10 @@ interface ResultCardProps {
   item: SearchItem;
   onlyHere: boolean;
   getDocument: (id: string) => Promise<DocumentRecord>;
+  isReranked?: boolean;
 }
 
-export function ResultCard({ item, onlyHere, getDocument }: ResultCardProps) {
+export function ResultCard({ item, onlyHere, getDocument, isReranked = false }: ResultCardProps) {
   const [open, setOpen] = useState(false);
   const [document, setDocument] = useState<DocumentRecord | null>(null);
   const [loading, setLoading] = useState(false);
@@ -42,8 +43,8 @@ export function ResultCard({ item, onlyHere, getDocument }: ResultCardProps) {
           <span className="px-2 py-0.5 rounded-sm font-mono font-bold text-xs bg-[#ff3d5a]/10 text-[var(--bl-accent-hot,#ff3d5a)] border border-[#ff3d5a]/30">
             #{item.rank}
           </span>
-          <span className="font-mono text-xs font-medium px-2.5 py-0.5 rounded-sm bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--border)]">
-            SCORE {item.score.toFixed(3)}
+          <span className="font-mono text-xs font-medium px-2.5 py-0.5 rounded-sm bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--border)]" title={isReranked ? 'Higher is better. Only comparable within this list' : undefined}>
+            {isReranked ? 'Relevance score' : 'Score'} {item.score.toFixed(3)}
           </span>
         </div>
         {onlyHere && (

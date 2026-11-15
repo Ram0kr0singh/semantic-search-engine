@@ -138,6 +138,7 @@ export function ResultColumn({
               item={item}
               onlyHere={showOnlyHere && onlyIds.has(item.id)}
               getDocument={getDocument}
+              isReranked={method?.kind === 'reranked'}
             />
           ))}
       </div>

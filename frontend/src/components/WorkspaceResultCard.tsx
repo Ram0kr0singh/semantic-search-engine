@@ -5,11 +5,12 @@ import { highlightText } from '../workspaceUtils';
 interface WorkspaceResultCardProps {
   item: WorkspaceSearchResultItem;
   query: string;
+  isReranked?: boolean;
 }
 
 const LONG_PASSAGE_THRESHOLD = 240;
 
-export function WorkspaceResultCard({ item, query }: WorkspaceResultCardProps) {
+export function WorkspaceResultCard({ item, query, isReranked = false }: WorkspaceResultCardProps) {
   const [expanded, setExpanded] = useState(false);
   const isLong = item.text.length > LONG_PASSAGE_THRESHOLD;
 
@@ -24,8 +25,8 @@ export function WorkspaceResultCard({ item, query }: WorkspaceResultCardProps) {
           <span className="px-2 py-0.5 rounded-sm font-mono font-bold text-xs bg-[#ff3d5a]/10 text-[var(--bl-accent-hot,#ff3d5a)] border border-[#ff3d5a]/30">
             #{item.rank}
           </span>
-          <span className="font-mono uppercase text-xs font-medium px-2.5 py-0.5 rounded-sm bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--border)]">
-            Score {item.score.toFixed(3)}
+          <span className="font-mono text-xs font-medium px-2.5 py-0.5 rounded-sm bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--border)]" title={isReranked ? 'Higher is better. Only comparable within this list' : undefined}>
+            {isReranked ? 'Relevance score' : 'Score'} {item.score.toFixed(3)}
           </span>
         </div>
         <div className="flex items-center gap-2 font-mono text-[11px] uppercase">

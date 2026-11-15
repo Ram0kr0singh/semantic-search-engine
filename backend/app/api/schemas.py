@@ -41,6 +41,16 @@ class SearchResponse(BaseModel):
     results: list[SearchItem]
 
 
+class HealthResponse(BaseModel):
+    status: str
+    document_count: int
+    methods: list[dict[str, Any]]
+    embedding_device: str
+    api_version: str
+    corpus_size: int | None = None
+    categories: list[str] | None = None
+
+
 class EvaluationRun(BaseModel):
     method: str
     dataset: str

@@ -15,6 +15,7 @@ interface CurveChartProps {
   isLoading: boolean;
   queryText: string;
   methodName?: string;
+  isReranked?: boolean;
 }
 
 export function CurveChart({
@@ -25,6 +26,7 @@ export function CurveChart({
   isLoading,
   queryText,
   methodName,
+  isReranked = false,
 }: CurveChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartId = useId();
@@ -160,11 +162,7 @@ export function CurveChart({
   const flagPixelY = activeCurve ? activeCurve.peakY * svgScale.scaleY : 0;
 
   const formatScoreBadge = (score: number) => {
-    if (score >= 0 && score <= 1) {
-      return score.toFixed(2);
-    }
-    // For BM25 or raw scores
-    return score > 0 ? `+${Math.round(score)}` : `${Math.round(score)}`;
+    return score.toFixed(3);
   };
 
   return (
@@ -191,7 +189,7 @@ export function CurveChart({
         viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
         preserveAspectRatio="none"
         className="relative z-10 w-full h-full"
-        aria-label="Semantic similarity bell curves"
+        aria-label={isReranked ? 'Relevance score bell curves' : 'Semantic similarity bell curves'}
         role="region"
       >
         <defs>
@@ -293,11 +291,15 @@ export function CurveChart({
           x={flagPixelX}
           y={flagPixelY}
           scoreText={formatScoreBadge(activeCurve.item.score)}
+          scoreLabel={isReranked ? 'Relevance score' : 'Score'}
           title={activeCurve.item.title}
           visible={true}
           onClick={() => onSelectResult(activeCurve.item)}
         />
       )}
+      <p className="absolute bottom-1 left-4 right-4 z-20 text-xs text-[var(--text-muted)] text-center">
+        Curve heights are relative within this list of results. Scores cannot be compared between approaches or between searches.
+      </p>
     </div>
   );
 }
