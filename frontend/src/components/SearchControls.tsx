@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 import type { Health, Method } from '../api';
 import { EXAMPLE_QUERIES } from '../constants';
 import type { ResultCount, SearchMode } from '../urlState';
+import { TypewriterHeading } from './brandlove/TypewriterHeading';
 
 interface SearchControlsProps {
   query: string;
@@ -61,12 +62,12 @@ export function SearchControls({
     <div className="space-y-6 sm:space-y-8">
       {/* Brand Love Score Minimalist Search Bar & Header */}
       <section className="relative pt-2 text-center space-y-4 max-w-4xl mx-auto">
-        <h1
+        <TypewriterHeading
+          lines={['Search papers by meaning,', 'not keywords']}
+          accessibleTitle="Search papers by meaning, not keywords"
           className="font-extrabold uppercase tracking-[0.2em] text-[var(--text)] text-center leading-[1.1] focus:outline-none"
           style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }}
-        >
-          Search papers by meaning, not keywords
-        </h1>
+        />
         <p className="text-xs sm:text-sm uppercase tracking-wide text-[var(--text-muted)] max-w-2xl mx-auto leading-relaxed font-sans">
           Describe what you are looking for in everyday language. We will find
           relevant computer-science papers for you.
