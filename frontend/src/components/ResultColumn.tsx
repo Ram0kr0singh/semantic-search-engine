@@ -27,23 +27,23 @@ export function ResultColumn({
 
   return (
     <section
-      className="bg-[var(--surface-raised)] border border-[var(--border-subtle)] rounded-xl shadow-xs overflow-hidden flex flex-col"
+      className="bg-[var(--surface)] border border-[var(--border)] rounded-sm shadow-xl overflow-hidden flex flex-col"
       aria-busy={loading}
     >
       {/* Compact Column Header */}
-      <header className="px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--surface-toolbar)] flex items-center justify-between gap-2">
+      <header className="px-4 py-3 border-b border-[var(--border)] bg-[var(--surface-toolbar)] flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <h2 className="text-sm sm:text-base font-bold text-[var(--text)] truncate">
+          <h2 className="text-sm sm:text-base font-bold text-[var(--text)] truncate font-sans">
             {title}
           </h2>
           {method?.kind && (
-            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[var(--surface)] border border-[var(--border-subtle)] text-[var(--text-muted)]">
+            <span className="text-[10px] uppercase font-mono tracking-wider px-2 py-0.5 rounded-sm bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--text-muted)]">
               {method.kind}
             </span>
           )}
         </div>
         {response && !loading && (
-          <span className="text-xs font-mono font-medium text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 rounded-full whitespace-nowrap">
+          <span className="text-xs font-mono font-medium text-[var(--bl-accent-hot,#ff3d5a)] bg-[#ff3d5a]/10 border border-[#ff3d5a]/25 px-2.5 py-0.5 rounded-sm whitespace-nowrap">
             {response.took_ms.toFixed(1)} ms
           </span>
         )}
