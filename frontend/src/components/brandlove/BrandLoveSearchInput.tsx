@@ -16,7 +16,7 @@ export function BrandLoveSearchInput({
   onSubmit,
   isSearching,
   tookMs,
-  corpusCount = 30000,
+  corpusCount,
 }: BrandLoveSearchInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -64,8 +64,12 @@ export function BrandLoveSearchInput({
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={`SEARCH ${corpusCount.toLocaleString()} ARXIV PAPERS BY MEANING... (PRESS '/' TO FOCUS)`}
-          aria-label={`Search ${corpusCount.toLocaleString()} arXiv papers`}
+          placeholder={corpusCount === undefined
+            ? "SEARCH ARXIV PAPERS BY MEANING... (PRESS '/' TO FOCUS)"
+            : `SEARCH ${corpusCount.toLocaleString()} ARXIV PAPERS BY MEANING... (PRESS '/' TO FOCUS)`}
+          aria-label={corpusCount === undefined
+            ? 'Search arXiv papers'
+            : `Search ${corpusCount.toLocaleString()} arXiv papers`}
           className="w-full bg-transparent text-[var(--text)] text-xs sm:text-sm md:text-base font-bold tracking-[0.18em] uppercase placeholder:text-[var(--text-muted)] placeholder:font-normal focus:outline-none"
         />
 

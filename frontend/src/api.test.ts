@@ -146,6 +146,8 @@ describe('API client and error normalization', () => {
     const mockHealth = {
       status: 'ok',
       document_count: 30000,
+      corpus_size: 12345,
+      categories: ['cs.AI', 'stat.ML'],
       methods: [{ id: 'tfidf', display_name: 'TF-IDF', model_name: null, ready: true }],
       embedding_device: 'cuda',
       api_version: '1.0.0',
@@ -165,6 +167,8 @@ describe('API client and error normalization', () => {
 
     const health = await api.health();
     expect(health.document_count).toBe(30000);
+    expect(health.corpus_size).toBe(12345);
+    expect(health.categories).toEqual(['cs.AI', 'stat.ML']);
     expect(health.embedding_device).toBe('cuda');
   });
 });

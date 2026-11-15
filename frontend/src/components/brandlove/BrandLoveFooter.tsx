@@ -7,9 +7,10 @@ interface BrandLoveFooterProps {
 }
 
 export function BrandLoveFooter({ onViewChange, health }: BrandLoveFooterProps) {
-  const paperCount = health?.document_count
-    ? `${health.document_count.toLocaleString()} PAPERS`
-    : '30,000 PAPERS';
+  const corpusSize = health?.corpus_size ?? health?.document_count;
+  const paperCount = corpusSize !== undefined
+    ? `${corpusSize.toLocaleString()} PAPERS`
+    : 'ARXIV PAPERS';
   const device = health?.embedding_device?.toUpperCase() ?? 'CUDA';
 
   return (

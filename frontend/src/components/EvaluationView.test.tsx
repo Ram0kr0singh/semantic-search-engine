@@ -102,6 +102,9 @@ describe('EvaluationView', () => {
     expect(screen.getByText('— : not measured end to end')).toBeInTheDocument();
     const tunedRow = within(section).getAllByText('Hybrid-tuned (MiniLM)')[0]?.closest('tr');
     expect(tunedRow?.querySelectorAll('td')[6]?.querySelector('[aria-label="Best value"]')).toBeNull();
+    expect(within(section).getAllByText('5.00 ms')).toHaveLength(2);
+    expect(within(section).queryByText('0.00 ms')).not.toBeInTheDocument();
+    expect(within(section).queryByText('NaN ms')).not.toBeInTheDocument();
   });
 
   it('shows the export command for a missing snapshot', async () => {

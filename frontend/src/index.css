@@ -123,6 +123,15 @@
   }
 }
 
+/* Keep interface copy legible even where compact utility classes are used. */
+@layer utilities {
+  [class*="text-[9px]"],
+  [class*="text-[10px]"],
+  [class*="text-[11px]"] {
+    font-size: 0.75rem !important;
+  }
+}
+
 @keyframes shimmer {
   0% {
     background-position: -200% 0;

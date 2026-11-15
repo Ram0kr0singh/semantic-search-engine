@@ -69,8 +69,8 @@ class SentenceBertRetriever(Retriever):
         }
         (output_dir / "metadata.json").write_text(json.dumps(metadata), encoding="utf-8")
 
-    def load(self, path: str | Path) -> None:
-        """Load a persisted index, rejecting data built with another model."""
+    def load(self, path: str | Path, corpus: Mapping[str, Mapping[str, str]]) -> None:
+        """Load a persisted index, rejecting data built for another model or corpus."""
         input_dir = Path(path)
         metadata_path = input_dir / "metadata.json"
         index_path = input_dir / "index.faiss"
@@ -93,6 +93,11 @@ class SentenceBertRetriever(Retriever):
             or len(document_ids) != len(document_texts)
         ):
             raise ValueError(f"Saved SBERT metadata in '{metadata_path}' is invalid.")
+        if document_count != len(corpus) or set(map(str, document_ids)) != set(corpus):
+            raise ValueError(
+                "Saved SBERT index was built for a different corpus (document count or IDs differ). "
+                "Rebuild it with scripts.search_demo --rebuild."
+            )
 
         index = faiss.read_index(str(index_path))
         if index.ntotal != document_count:

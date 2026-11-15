@@ -2,6 +2,7 @@ interface ResultFlagProps {
   x: number;
   y: number;
   scoreText: string;
+  scoreLabel: string;
   title: string;
   visible: boolean;
   onClick?: () => void;
@@ -11,6 +12,7 @@ export function ResultFlag({
   x,
   y,
   scoreText,
+  scoreLabel,
   title,
   visible,
   onClick,
@@ -37,11 +39,11 @@ export function ResultFlag({
           className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-[7px] border-y-transparent border-r-[8px] border-r-[var(--bl-accent-hot,#ff3d5a)]"
           aria-hidden="true"
         />
-        <span>{scoreText}</span>
+        <span>{scoreLabel}: {scoreText}</span>
       </div>
 
       {/* Title block */}
-      <div className="flex items-center bg-[var(--surface)] text-[var(--text)] text-[10px] sm:text-[11px] font-bold tracking-[0.18em] uppercase px-3.5 py-1.5 border border-l-0 border-[var(--border)] max-w-[220px] sm:max-w-[320px] truncate shadow-lg group-hover:bg-[var(--surface-raised)] transition-colors">
+      <div className="flex items-center bg-[var(--surface)] text-[var(--text)] text-xs font-bold px-3.5 py-1.5 border border-l-0 border-[var(--border)] max-w-[220px] sm:max-w-[320px] truncate shadow-lg group-hover:bg-[var(--surface-raised)] transition-colors">
         <span className="truncate" title={title}>
           #{scoreText} · {title}
         </span>

@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import asyncio
+import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -41,13 +42,39 @@ def _build_command(corpus: Path, index_dir: Path, model_name: str) -> str:
     return f'python -m scripts.search_demo --method sbert --model "{model_name}" --corpus "{corpus}" --index-dir "{index_dir}" --rebuild'
 
 
+def _corpus_categories(
+    corpus_path: Path, records: dict[str, dict[str, object]]
+) -> list[str]:
+    stats_path = corpus_path.with_suffix(".stats.json")
+    try:
+        stats = json.loads(stats_path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        stats = None
+    except (OSError, json.JSONDecodeError) as exc:
+        logger.warning("Could not read corpus statistics from %s: %s", stats_path, exc)
+        stats = None
+    if isinstance(stats, dict) and isinstance(stats.get("requested_categories"), list):
+        categories = stats["requested_categories"]
+        if all(isinstance(category, str) for category in categories):
+            return list(dict.fromkeys(categories))
+    return sorted(
+        {
+            str(category)
+            for record in records.values()
+            if isinstance(record.get("categories"), list)
+            for category in record["categories"]
+        }
+    )
+
+
 def load_registry() -> SearchRegistry:
     """Load the corpus, sparse index, and any existing persisted dense indexes."""
-    corpus_path = Path(_setting("ARXIV_CORPUS_PATH", "data/arxiv_cs_30000.jsonl"))
+    corpus_path = Path(_setting("ARXIV_CORPUS_PATH", "data/arxiv_60000_91cee96f.jsonl"))
     corpus, records = load_arxiv_corpus(corpus_path)
     tfidf = TfidfRetriever()
     tfidf.index(corpus)
-    registry = SearchRegistry(records=records, retrievers={"tfidf": tfidf}, embedding_device="cuda" if torch.cuda.is_available() else "cpu")
+    categories = _corpus_categories(corpus_path, records)
+    registry = SearchRegistry(records=records, retrievers={"tfidf": tfidf}, embedding_device="cuda" if torch.cuda.is_available() else "cpu", categories=categories)
     registry.methods["tfidf"] = MethodInfo("tfidf", "TF-IDF", kind="keyword", description="Matches papers using weighted keyword overlap.", ready=True)
     bm25 = BM25Retriever()
     bm25.index(corpus)
@@ -55,8 +82,8 @@ def load_registry() -> SearchRegistry:
     registry.methods["bm25"] = MethodInfo("bm25", "BM25", kind="keyword", description="Ranks papers by keyword relevance with BM25.", ready=True)
 
     configs = (
-        ("sbert-minilm", "Sentence-BERT MiniLM", _setting("ARXIV_MINILM_MODEL", "sentence-transformers/all-MiniLM-L6-v2"), Path(_setting("ARXIV_MINILM_INDEX_DIR", "data/arxiv_sbert_index"))),
-        ("sbert-mpnet", "Sentence-BERT MPNet", _setting("ARXIV_MPNET_MODEL", "sentence-transformers/all-mpnet-base-v2"), Path(_setting("ARXIV_MPNET_INDEX_DIR", "data/index_mpnet"))),
+        ("sbert-minilm", "Sentence-BERT MiniLM", _setting("ARXIV_MINILM_MODEL", "sentence-transformers/all-MiniLM-L6-v2"), Path(_setting("ARXIV_MINILM_INDEX_DIR", f"data/index_minilm_{corpus_path.stem}"))),
+        ("sbert-mpnet", "Sentence-BERT MPNet", _setting("ARXIV_MPNET_MODEL", "sentence-transformers/all-mpnet-base-v2"), Path(_setting("ARXIV_MPNET_INDEX_DIR", f"data/index_mpnet_{corpus_path.stem}"))),
     )
     for method_id, display_name, model_name, index_dir in configs:
         command = _build_command(corpus_path, index_dir, model_name)
@@ -66,16 +93,16 @@ def load_registry() -> SearchRegistry:
             continue
         try:
             retriever = SentenceBertRetriever(model_name=model_name)
-            retriever.load(index_dir)
+            retriever.load(index_dir, corpus)
         except Exception as exc:  # Do not prevent sparse search when a local index is unusable.
             logger.warning("%s index is unavailable (%s). Build it with: %s", method_id, exc, command)
-            registry.methods[method_id] = MethodInfo(method_id, display_name, model_name, False, command, "semantic", "Finds papers with similar meaning using sentence embeddings.", "The saved semantic index could not be loaded.")
+            registry.methods[method_id] = MethodInfo(method_id, display_name, model_name, False, command, "semantic", "Finds papers with similar meaning using sentence embeddings.", f"{exc} Build it with: {command}")
         else:
             registry.retrievers[method_id] = retriever
             registry.embedding_device = retriever.device
             registry.methods[method_id] = MethodInfo(method_id, display_name, model_name, True, None, "semantic", "Finds papers with similar meaning using sentence embeddings.")
     mpnet = registry.retrievers.get("sbert-mpnet")
-    mpnet_command = _build_command(corpus_path, Path(_setting("ARXIV_MPNET_INDEX_DIR", "data/index_mpnet")), _setting("ARXIV_MPNET_MODEL", "sentence-transformers/all-mpnet-base-v2"))
+    mpnet_command = _build_command(corpus_path, Path(_setting("ARXIV_MPNET_INDEX_DIR", f"data/index_mpnet_{corpus_path.stem}")), _setting("ARXIV_MPNET_MODEL", "sentence-transformers/all-mpnet-base-v2"))
     if mpnet is None:
         reason = "MPNet's saved semantic index is not available."
         registry.methods["hybrid-mpnet"] = MethodInfo("hybrid-mpnet", "Hybrid (BM25 + MPNet)", kind="hybrid", description="Combines BM25 and MPNet rankings; fused scores are not comparable across methods.", build_command=mpnet_command, unavailable_reason=reason)

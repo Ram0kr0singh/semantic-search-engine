@@ -33,8 +33,9 @@ export function Header({
 }: HeaderProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const device = health?.embedding_device?.toUpperCase() ?? 'CPU';
-  const paperCount = health?.document_count
-    ? `${health.document_count.toLocaleString()} papers`
+  const corpusSize = health?.corpus_size ?? health?.document_count;
+  const paperCount = corpusSize !== undefined
+    ? `${corpusSize.toLocaleString()} papers`
     : 'Corpus';
 
   return (

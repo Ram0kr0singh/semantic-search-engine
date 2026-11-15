@@ -101,7 +101,7 @@ export function RecallLineChart({
           <span className="text-[11px] font-mono font-bold uppercase tracking-[0.2em] text-[var(--text)] block">
             Recall Progression Curves
           </span>
-          <span className="text-[10px] font-mono text-[var(--text-muted)] tracking-wider uppercase">
+          <span className="text-xs font-mono text-[var(--text-muted)] tracking-wider uppercase">
             Recall@1 → Recall@10 → Recall@100 cutoff depth
           </span>
         </div>
@@ -146,7 +146,7 @@ export function RecallLineChart({
                   y={y + 3}
                   textAnchor="end"
                   fill="var(--text-muted)"
-                  fontSize="9"
+                  fontSize="12"
                   fontFamily="monospace"
                 >
                   {ratio.toFixed(2)}
@@ -173,7 +173,7 @@ export function RecallLineChart({
                 y={paddingTop + chartHeight + 18}
                 textAnchor="middle"
                 fill={activeXIndex === idx ? 'var(--text)' : 'var(--text-muted)'}
-                fontSize="10"
+                fontSize="12"
                 fontWeight="bold"
                 fontFamily="monospace"
                 className="uppercase tracking-wider"
@@ -274,7 +274,7 @@ export function RecallLineChart({
                 y="-16"
                 textAnchor="middle"
                 fill="var(--text)"
-                fontSize="10"
+                fontSize="12"
                 fontWeight="bold"
                 fontFamily="monospace"
               >
@@ -287,7 +287,7 @@ export function RecallLineChart({
       </div>
 
       {/* Legend with interactive square swatches */}
-      <div className="flex flex-wrap items-center justify-center gap-x-3.5 gap-y-2 pt-2 border-t border-[var(--border-subtle)] text-[10px] font-mono uppercase">
+      <div className="flex flex-wrap items-center justify-center gap-x-3.5 gap-y-2 pt-2 border-t border-[var(--border-subtle)] text-xs font-mono uppercase">
         {lines.map((line) => (
           <button
             key={`legend-${line.label}-${chartId}`}

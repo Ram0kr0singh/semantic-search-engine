@@ -9,7 +9,7 @@ from time import perf_counter
 
 from fastapi import APIRouter, HTTPException, Request
 
-from .schemas import EvaluationResponse, SearchItem, SearchRequest, SearchResponse
+from .schemas import EvaluationResponse, HealthResponse, SearchItem, SearchRequest, SearchResponse
 from .state import SearchRegistry
 
 router = APIRouter()
@@ -40,16 +40,18 @@ def make_snippet(text: str, limit: int = 300) -> str:
     return normalized[: cut if cut > 0 else limit].rstrip() + "..."
 
 
-@router.get("/health")
-def health(request: Request) -> dict[str, object]:
+@router.get("/health", response_model=HealthResponse, response_model_exclude_none=True)
+def health(request: Request) -> HealthResponse:
     registry = get_registry(request)
-    return {
-        "status": "ok" if registry.default_method else "degraded",
-        "document_count": len(registry.records),
-        "methods": [method.__dict__ for method in registry.methods.values()],
-        "embedding_device": registry.embedding_device,
-        "api_version": "1.0.0",
-    }
+    return HealthResponse(
+        status="ok" if registry.default_method else "degraded",
+        document_count=len(registry.records),
+        methods=[method.__dict__ for method in registry.methods.values()],
+        embedding_device=registry.embedding_device,
+        api_version="1.0.0",
+        corpus_size=len(registry.records),
+        categories=registry.categories,
+    )
 
 
 @router.get("/methods")

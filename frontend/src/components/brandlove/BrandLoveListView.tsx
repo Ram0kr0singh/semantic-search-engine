@@ -6,6 +6,7 @@ interface BrandLoveListViewProps {
   onSelectResult: (item: SearchItem) => void;
   activeRank: number | null;
   onHoverRank: (rank: number | null) => void;
+  isReranked?: boolean;
 }
 
 export function BrandLoveListView({
@@ -13,6 +14,7 @@ export function BrandLoveListView({
   onSelectResult,
   activeRank,
   onHoverRank,
+  isReranked = false,
 }: BrandLoveListViewProps) {
   if (results.length === 0) {
     return (
@@ -69,7 +71,7 @@ export function BrandLoveListView({
 
                 <h4
                   id={`result-title-${item.id}`}
-                  className="text-xs sm:text-sm font-bold tracking-[0.14em] uppercase text-[var(--text)] truncate"
+                  className="text-xs sm:text-sm font-bold text-[var(--text)] truncate"
                 >
                   {item.title}
                 </h4>
@@ -79,7 +81,7 @@ export function BrandLoveListView({
                 {item.snippet}
               </p>
 
-              <div className="flex flex-wrap items-center gap-2 pt-1 text-[10px] font-mono text-[var(--text-muted)] uppercase">
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs font-mono text-[var(--text-muted)] uppercase">
                 {item.year && <span>{item.year}</span>}
                 {item.categories.map((cat) => (
                   <span
@@ -94,8 +96,8 @@ export function BrandLoveListView({
 
             <div className="shrink-0 flex items-center gap-3 sm:self-center">
               <div className="text-right">
-                <span className="text-[10px] uppercase font-mono tracking-widest text-[var(--text-muted)] block">
-                  SCORE
+                <span className="text-xs font-mono text-[var(--text-muted)] block" title={isReranked ? 'Higher is better. Only comparable within this list' : undefined}>
+                  {isReranked ? 'Relevance score' : 'Score'}
                 </span>
                 <span
                   className="text-xs sm:text-sm font-mono font-bold"

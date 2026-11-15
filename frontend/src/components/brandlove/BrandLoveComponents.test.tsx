@@ -130,7 +130,7 @@ describe('Brand Love Score Components', () => {
 
       expect(screen.getByRole('region', { name: /semantic similarity bell curves/i })).toBeInTheDocument();
       expect(screen.getByRole('tooltip')).toBeInTheDocument();
-      expect(screen.getByText('0.94')).toBeInTheDocument();
+      expect(screen.getByText('Score: 0.940')).toBeInTheDocument();
       expect(screen.getByText(/Attention Is All You Need/i)).toBeInTheDocument();
     });
   });

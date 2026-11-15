@@ -30,6 +30,7 @@ class SearchRegistry:
     retrievers: dict[str, Retriever] = field(default_factory=dict)
     methods: dict[str, MethodInfo] = field(default_factory=dict)
     embedding_device: str = "cpu"
+    categories: list[str] | None = None
     # Held once around a complete request that invokes a neural model.  It is
     # intentionally not acquired inside retrievers: composites call shared
     # components, and nested acquisition of a non-reentrant Lock would hang.

@@ -15,6 +15,8 @@ export interface Method {
 export interface Health {
   status: string;
   document_count: number;
+  corpus_size?: number;
+  categories?: string[];
   methods: Method[];
   embedding_device: string;
   api_version: string;
