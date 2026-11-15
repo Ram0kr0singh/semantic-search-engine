@@ -30,6 +30,7 @@ import {
 } from '../workspaceUtils';
 import { WorkspaceResultCard } from './WorkspaceResultCard';
 import { FilePreviewModal } from './FilePreviewModal';
+import { TypewriterHeading } from './brandlove/TypewriterHeading';
 
 interface QueueItem {
   id: string;
@@ -502,14 +503,14 @@ export function WorkspaceView() {
 
       {/* Header & Explanation */}
       <section className="text-center space-y-4 max-w-4xl mx-auto pt-2">
-        <h1
-          ref={headingRef}
+        <TypewriterHeading
+          headingRef={headingRef}
           tabIndex={-1}
+          lines={['Search your own', 'documents']}
+          accessibleTitle="Search your own documents"
           className="font-extrabold uppercase tracking-[0.2em] text-[var(--text)] text-center leading-[1.1] focus:outline-none"
           style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }}
-        >
-          Search your own documents
-        </h1>
+        />
         <p className="text-xs sm:text-sm uppercase tracking-wide text-[var(--text-muted)] max-w-2xl mx-auto leading-relaxed font-sans">
           Upload your own PDF, text or Markdown files and search them by meaning.
           Files are not saved to disk by this app. Everything is removed after

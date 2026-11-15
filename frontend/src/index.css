@@ -138,6 +138,19 @@
   animation: shimmer 1.5s infinite;
 }
 
+@keyframes blBlink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.typewriter-cursor {
+  animation: blBlink 0.9s step-end infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
