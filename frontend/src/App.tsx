@@ -6,6 +6,7 @@ import {
   type DocumentRecord,
   type Health,
   type Method,
+  type SearchItem,
   type SearchResponse,
 } from './api';
 import { Header } from './components/Header';
@@ -13,6 +14,13 @@ import { OfflineView } from './components/OfflineView';
 import { ResultColumn } from './components/ResultColumn';
 import { SearchControls } from './components/SearchControls';
 import { EvaluationView } from './components/EvaluationView';
+import { WorkspaceView } from './components/WorkspaceView';
+import { CurveChart } from './components/brandlove/CurveChart';
+import { TopList } from './components/brandlove/TopList';
+import { ControlBar } from './components/brandlove/ControlBar';
+import { BrandLoveListView } from './components/brandlove/BrandLoveListView';
+import { DetailPanel } from './components/brandlove/DetailPanel';
+import { BrandLoveFooter } from './components/brandlove/BrandLoveFooter';
 import {
   writeUrlState,
   type AppView,
@@ -38,8 +46,7 @@ function formatErrorMessage(error: unknown): string {
 export default function App() {
   const { theme, toggleTheme } = useTheme();
 
-  // Always begin with a blank search. This also prevents an old query in a
-  // bookmarked or refreshed URL from unexpectedly being submitted again.
+  // Always begin with a blank search
   const [query, setQueryState] = useState('');
   const [mode, setModeState] = useState<SearchMode>('search');
   const [model, setModelState] = useState('sbert-mpnet');
@@ -53,6 +60,13 @@ export default function App() {
   const [responses, setResponses] = useState<Record<string, SearchResponse | null>>({});
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
+
+  // Brand Love Visualization state
+  const [viewMode, setViewMode] = useState<'curve' | 'list'>('curve');
+  const [activeRank, setActiveRank] = useState<number | null>(null);
+  const [detailItem, setDetailItem] = useState<SearchItem | null>(null);
+  const [page, setPage] = useState(1);
+
   const documentCache = useRef(new Map<string, DocumentRecord>());
   const searchId = useRef(0);
 
@@ -95,6 +109,8 @@ export default function App() {
       setResponses({});
       setErrors({});
       setLoading(Object.fromEntries(ids.map((method) => [method, true])));
+      setActiveRank(null);
+      setPage(1);
 
       await Promise.all(
         ids.map(async (method) => {
@@ -180,14 +196,11 @@ export default function App() {
     [executeSearch, query, left, k]
   );
 
-  const handleViewChange = useCallback(
-    (nextView: AppView) => {
-      setViewState(nextView);
-      if (nextView !== 'eval') setModeState(nextView);
-      writeUrlState(true);
-    },
-    []
-  );
+  const handleViewChange = useCallback((nextView: AppView) => {
+    setViewState(nextView);
+    if (nextView === 'search' || nextView === 'compare') setModeState(nextView);
+    writeUrlState(true);
+  }, []);
 
   const retryConnection = useCallback(async () => {
     try {
@@ -216,6 +229,9 @@ export default function App() {
     setResponses({});
     setErrors({});
     setLoading({});
+    setActiveRank(null);
+    setDetailItem(null);
+    setPage(1);
     window.history.replaceState(null, '', window.location.pathname);
   }, []);
 
@@ -231,8 +247,6 @@ export default function App() {
         setHealth(nextHealth);
         setMethods(nextMethods);
         setUnreachable(false);
-        // Remove legacy search parameters once the page has loaded. Search
-        // fields deliberately reset on refresh or a fresh visit.
         if (window.location.search) {
           window.history.replaceState(null, '', window.location.pathname);
         }
@@ -273,11 +287,16 @@ export default function App() {
   const settingsChanged =
     !!displayed &&
     (displayed.model !== model || displayed.left !== left || displayed.k !== k);
-  const leftMethod = methods.find((method) => method.id === displayedLeft);
-  const rightMethod = methods.find((method) => method.id === displayedModel);
+  const leftMethod = methods.find((m) => m.id === displayedLeft);
+  const rightMethod = methods.find((m) => m.id === displayedModel);
+
+  const searchResults = rightResponse?.results ?? [];
+  const itemsPerPage = 10;
+  const totalPages = Math.max(1, Math.ceil(searchResults.length / itemsPerPage));
+  const displayedResults = searchResults.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   return (
-    <div className="relative min-h-screen bg-[var(--canvas)] text-[var(--text)] overflow-x-hidden selection:bg-blue-500/30">
+    <div className="relative min-h-screen flex flex-col bg-[var(--canvas)] text-[var(--text)] overflow-x-hidden selection:bg-[var(--bl-accent-hot,#ff3d5a)] selection:text-white">
       {/* Abstract Glowing Gradient Shape Behind Hero & Window */}
       <div
         className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-full max-w-5xl h-[560px] overflow-hidden -z-10"
@@ -295,7 +314,7 @@ export default function App() {
         />
       </div>
 
-      <main className="max-w-6xl mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-8">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-8 flex flex-col justify-between">
         <Header
           health={health}
           view={view}
@@ -303,10 +322,17 @@ export default function App() {
           onHome={goHome}
           theme={theme}
           onToggleTheme={toggleTheme}
+          methods={methods}
+          currentMethod={model}
+          onSelectMethod={setModel}
+          k={k}
+          onKChange={setK}
         />
 
         {view === 'eval' ? (
           <EvaluationView />
+        ) : view === 'documents' ? (
+          <WorkspaceView />
         ) : (
           <SearchControls
             query={query}
@@ -355,7 +381,7 @@ export default function App() {
               </p>
             )}
 
-            {/* Results Grid */}
+            {/* Results Display */}
             {displayedMode === 'compare' ? (
               <>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
@@ -390,22 +416,87 @@ export default function App() {
                 )}
               </>
             ) : (
-              <div>
-                <ResultColumn
-                  title={rightMethod?.display_name ?? 'Search Results'}
-                  method={rightMethod}
-                  response={responses[displayedModel] ?? null}
-                  error={errors[displayedModel] ?? null}
-                  loading={!!loading[displayedModel]}
-                  other={null}
-                  showOnlyHere={false}
-                  getDocument={getDocument}
-                />
+              <div className="space-y-4">
+                {/* Brand Love Score Visualization Stage */}
+                {viewMode === 'curve' ? (
+                  <div className="relative w-full rounded-2xl bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-6 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden">
+                    {/* Top 5 list on left */}
+                    <div className="w-full md:w-72 shrink-0 self-start md:self-center order-2 md:order-1">
+                      <TopList
+                        results={displayedResults}
+                        activeRank={activeRank}
+                        onHoverRank={setActiveRank}
+                        onSelectResult={(item) => setDetailItem(item)}
+                        title="TOP 5 RELEVANT PAPERS"
+                      />
+                    </div>
+
+                    {/* Bell Curves Canvas */}
+                    <div className="flex-1 w-full order-1 md:order-2 flex items-center justify-center">
+                      <CurveChart
+                        results={displayedResults}
+                        activeRank={activeRank}
+                        onHoverRank={setActiveRank}
+                        onSelectResult={(item) => setDetailItem(item)}
+                        isLoading={isAnyLoading}
+                        queryText={displayed?.query ?? query}
+                        methodName={rightMethod?.display_name}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full rounded-2xl bg-[var(--surface)] border border-[var(--border)] p-4 shadow-xl">
+                    <BrandLoveListView
+                      results={displayedResults}
+                      onSelectResult={(item) => setDetailItem(item)}
+                      activeRank={activeRank}
+                      onHoverRank={setActiveRank}
+                    />
+                  </div>
+                )}
+
+                {/* Floating Bottom Control Bar */}
+                {searchResults.length > 0 && (
+                  <ControlBar
+                    viewMode={viewMode}
+                    onToggleViewMode={setViewMode}
+                    page={page}
+                    totalPages={totalPages}
+                    onPrevPage={() => setPage((p) => Math.max(1, p - 1))}
+                    onNextPage={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    hasResults={searchResults.length > 0}
+                  />
+                )}
+
+                {/* Accessible Full Result List & Abstract Expansion Fallback */}
+                <div className="pt-4 border-t border-[var(--border-subtle)]">
+                  <ResultColumn
+                    title={rightMethod?.display_name ?? 'Search Results'}
+                    method={rightMethod}
+                    response={responses[displayedModel] ?? null}
+                    error={errors[displayedModel] ?? null}
+                    loading={!!loading[displayedModel]}
+                    other={null}
+                    showOnlyHere={false}
+                    getDocument={getDocument}
+                  />
+                </div>
               </div>
             )}
           </SearchControls>
         )}
       </main>
+
+      {/* Slide-over Detail Panel */}
+      <DetailPanel
+        item={detailItem}
+        onClose={() => setDetailItem(null)}
+        getDocument={getDocument}
+        totalResultsCount={displayedResults.length}
+      />
+
+      {/* Hairline Footer */}
+      <BrandLoveFooter onViewChange={handleViewChange} health={health} />
     </div>
   );
 }

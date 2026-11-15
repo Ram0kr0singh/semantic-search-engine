@@ -19,22 +19,22 @@ export function OfflineView({ onRetry }: OfflineViewProps) {
         />
       </div>
 
-      <div className="max-w-lg w-full bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-xl p-6 sm:p-8 text-center space-y-5">
-        <div className="w-12 h-12 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-500 flex items-center justify-center mx-auto text-xl font-bold shadow-xs">
+      <div className="max-w-lg w-full bg-[var(--surface)] border border-[var(--border)] rounded-sm shadow-2xl p-6 sm:p-8 text-center space-y-5">
+        <div className="w-10 h-10 rounded-full bg-[var(--bl-accent-hot,#ff3d5a)]/15 border border-[var(--bl-accent-hot,#ff3d5a)]/30 text-[var(--bl-accent-hot,#ff3d5a)] flex items-center justify-center mx-auto text-lg font-bold shadow-xs">
           !
         </div>
 
         <div>
-          <h1 className="text-xl sm:text-2xl font-extrabold text-[var(--text)] mb-2 tracking-tight">
+          <h1 className="text-lg sm:text-xl font-extrabold uppercase tracking-[0.2em] text-[var(--text)] mb-2">
             Semantic Search is offline
           </h1>
-          <p className="text-sm text-[var(--text-muted)] leading-relaxed">
+          <p className="text-xs sm:text-sm font-mono uppercase tracking-wide text-[var(--text-muted)] leading-relaxed">
             Unable to connect to the backend search API. Start the FastAPI server
             in another terminal from the repository root, then retry:
           </p>
         </div>
 
-        <div className="bg-[var(--surface-toolbar)] border border-[var(--border-subtle)] text-blue-500 dark:text-blue-400 rounded-xl p-3 text-xs sm:text-sm font-mono text-left overflow-x-auto select-all shadow-inner">
+        <div className="bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--bl-accent-hot,#ff3d5a)] rounded-sm p-3 text-xs font-mono text-left overflow-x-auto select-all">
           <code>python -m uvicorn backend.app.api.main:app --port 8000</code>
         </div>
 
@@ -42,7 +42,7 @@ export function OfflineView({ onRetry }: OfflineViewProps) {
           <button
             type="button"
             onClick={onRetry}
-            className="w-full sm:w-auto px-6 py-2.5 bg-[var(--hero-btn-bg)] text-[var(--hero-btn-fg)] hover:opacity-90 font-bold text-sm rounded-full shadow-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] cursor-pointer"
+            className="w-full sm:w-auto px-6 py-2.5 bg-[var(--bl-accent-hot,#ff3d5a)] text-white hover:bg-[#ff5c73] font-bold text-xs uppercase tracking-[0.15em] rounded-sm shadow-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] cursor-pointer"
           >
             Retry connection
           </button>

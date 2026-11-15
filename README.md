@@ -103,7 +103,7 @@ links are listed here.
   is not currently wired into the search API.
 - FastAPI endpoints for health, methods, search, documents, and the evaluation
   snapshot.
-- React UI with Compare, Search, and Evaluation views; Compare supports any two distinct available methods.
+- React UI with Search, Compare, Your documents, and Evaluation views; Compare supports any two distinct available methods, and Your documents enables searching within private uploaded files.
 - Shareable search settings in the URL, document expansion, and offline/error
   handling.
 - Docker Compose setup with CPU as the default and an optional NVIDIA override.
@@ -125,7 +125,7 @@ flowchart LR
     FAISS --> SB["Sentence-BERT retriever with loaded FAISS index"]
     API --> TFIDF
     API --> SB
-    UI["React UI: Compare, Search, Evaluation"] -->|"HTTP JSON"| API
+    UI["React UI: Search, Compare, Your documents, Evaluation"] -->|"HTTP JSON"| API
   end
 
   BEIR["BEIR: SciFact and FiQA"] --> EVAL["scripts/evaluate.py"]
@@ -424,10 +424,18 @@ docker-compose*.yml    Default and optional GPU Compose configurations
   BM25 weight on a separate development split; no test-query tuning is used.
 - PostgreSQL is not used: the demo corpus is small, read-only for search, and
   loaded into memory by the API.
-- The text chunker is a standalone utility; the current API searches papers
-  from the prepared corpus rather than uploaded documents or passages.
+- The arXiv corpus search searches papers from the prepared 30,000-paper corpus,
+  while the "Your documents" workspace feature uses text chunking to chunk
+  and index uploaded documents dynamically in memory.
 
 ## Search your own documents
+
+The web application includes a **Your documents** view (accessible via the header navigation) that lets non-technical visitors upload files and search within them.
+
+- **Drop zone & uploads:** Upload PDF, plain text (`.txt`), or Markdown (`.md`) files one by one or in batches via drag and drop or the file picker. Workspaces are created lazily upon the first upload so opening the view never creates unnecessary sessions. Files are queued and processed sequentially with visible progress indicators ("Uploading", "Reading and indexing", "Done", or clear plain-language error guidance).
+- **Search approaches:** Search inside uploaded documents using Meaning match (semantic Sentence-BERT, default), Exact words (BM25), Meaning + exact words (hybrid), or Best match, slower (cross-encoder reranking).
+- **Results & highlighting:** Results show document names, page numbers when available, relevance scores, and safe text query-word highlighting (rendered strictly as text spans without dangerous HTML injection), with expandable passages.
+- **Privacy & lifecycle:** Uploaded files and extracted text are not saved to disk by this app. Workspace text, passages, and search indexes reside in temporary server memory and expire after about an hour of inactivity. While a multipart request is being received, the web framework may buffer data in memory or in a temporary operating-system file, which is cleaned up as soon as the request ends. Visitors can remove individual documents or click "Delete everything" with a confirmation step to immediately erase all documents, indexes, and session tokens. Tokens are stored in browser `sessionStorage` (with in-memory fallback) and never appear in URLs or DOM text.
 
 Set `WORKSPACES_ENABLED=true` (the default) to create a private temporary workspace with `POST /workspaces`. The response contains a random URL-safe `workspace_id`; send it only in the `X-Workspace-Token` header to `/workspace`, `/workspace/documents`, `/workspace/documents/{document_id}`, and `/workspace/search`. The token is never part of a URL, so access logs do not reveal it. Upload one PDF, UTF-8 `.txt`, or UTF-8 `.md` file at a time. The application never saves uploaded originals or extracted text to disk; workspace text, passages, and indexes are kept in memory and expire after 60 minutes of inactivity by default.
 
@@ -448,6 +456,43 @@ curl.exe -s -X POST -H "X-Workspace-Token: %WORKSPACE_TOKEN%" -H "Content-Type: 
 curl.exe -i -X DELETE -H "X-Workspace-Token: %WORKSPACE_TOKEN%" http://127.0.0.1:8000/workspace/documents/PASTE_document_id_HERE
 curl.exe -i -X DELETE -H "X-Workspace-Token: %WORKSPACE_TOKEN%" http://127.0.0.1:8000/workspace
 ```
+
+## "Semantic Score" Visualization (Brand Love Score Inspiration)
+
+The search interface features an interactive "Semantic Score" visualization strongly inspired by the award-winning design language of *Brand Love Score* (Awwwards SOTD by Drumroll):
+
+- **Overlapping Bell Curves:** Search results are plotted as parametric Gaussian bell curves sharing a common baseline. Height reflects normalized semantic similarity scores.
+- **Color Gradient Interpolation:** Curves smoothly interpolate from hot pink-red (`#ff3d5a`) at Rank 1 to deep violet (`#8a2be2`) at Rank $K$.
+- **Interactive Flag Tooltip:** Hovering a curve highlights it, dims all other curves to ~25% opacity, and brings up the signature angular red-and-dark flag showing the score and document title.
+- **Numbered Left Panel:** The top 5 results are listed in uppercase, letter-spaced typography (`1. TITLE`, `2. TITLE`), with synchronized hover and click interactions.
+- **View Switcher & Bottom Control Bar:** A floating bottom pill dock features pagination chevrons (`<` `>`) and toggles between **Curve View** (bell curves) and **List View** (accessible semantic feed).
+- **Slide-Over Detail Panel:** Clicking any curve, flag, or list item slides open a comprehensive detail drawer with full abstract, metadata, arXiv categories, and external arXiv.org links.
+- **Outlined Typographic Watermark:** A massive low-contrast headline (`TOP K` `{QUERY}`) sits quietly behind the curves.
+
+### Design Tokens & Customization Guide
+
+All styling is managed via CSS variables in `frontend/src/index.css`:
+
+```css
+:root, [data-theme="dark"] {
+  --bl-canvas: #151a1a;          /* Charcoal canvas */
+  --bl-surface: #1b2121;         /* Drawer & modal background */
+  --bl-surface-floating: #0e1212;/* Bottom floating dock & flag block */
+  --bl-accent-hot: #ff3d5a;      /* Top rank accent color (Hot Pink-Red) */
+  --bl-accent-cool: #8a2be2;     /* Lowest rank accent color (Deep Violet) */
+  --bl-border: rgba(255, 255, 255, 0.12);
+  --bl-border-subtle: rgba(255, 255, 255, 0.06);
+  --bl-text-bright: #ffffff;
+  --bl-text-dim: #8b9999;
+}
+```
+
+#### How to Tweak:
+1. **Curve Count ($K$):** Open the red hamburger menu in the top-right header or use the `Show:` selector to switch between 5, 10, 20, or 50 curves.
+2. **Colors:** Modify `--bl-accent-hot` and `--bl-accent-cool` in `frontend/src/index.css`. The pure color math in `src/components/brandlove/curveMath.ts` automatically computes RGB interpolation across ranks.
+3. **Animation Timing & Motion:** In `src/components/brandlove/CurveChart.tsx`, adjust `duration = 750` (in milliseconds) and `delayFactor` rank stagger (`idx * 20ms`). The animation automatically respects `prefers-reduced-motion` settings.
+
+---
 
 ## Future work
 

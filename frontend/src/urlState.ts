@@ -1,5 +1,5 @@
 export type SearchMode = 'compare' | 'search';
-export type AppView = SearchMode | 'eval';
+export type AppView = SearchMode | 'eval' | 'documents';
 
 export type ResultCount = 5 | 10 | 20;
 

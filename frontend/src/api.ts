@@ -54,6 +54,69 @@ export interface SearchParams {
 export interface EvaluationRun { method: string; dataset: string; model: string | null; generated_at: string; query_count: number; recall_at_1: number; recall_at_5: number; recall_at_10: number; recall_at_100: number; mrr_at_10: number; ndcg_at_10: number; index_build_seconds: number; average_query_latency_ms: number | null; fusion_only_latency_ms?: number | null; latency_note?: string | null; fusion?: { w_bm25?: number }; reranking?: { first_stage?: string; dense_model?: string | null }; }
 export interface EvaluationResponse { runs: EvaluationRun[]; hardware_note: string; generated_at: string; }
 
+export interface WorkspaceLimits {
+  max_upload_mb: number;
+  max_files_per_workspace: number;
+  max_pdf_pages: number;
+  max_chars_per_document: number;
+  max_passages_per_workspace: number;
+}
+
+export interface CreateWorkspaceResponse {
+  workspace_id: string;
+  ttl_minutes: number;
+  limits: WorkspaceLimits;
+}
+
+export interface WorkspaceDocSummary {
+  id: string;
+  name: string;
+  kind: string;
+  pages: number | null;
+  character_count: number;
+  passage_count: number;
+  warnings: string[];
+}
+
+export interface WorkspaceTotals {
+  documents: number;
+  passages: number;
+}
+
+export interface WorkspaceStatusResponse {
+  documents: WorkspaceDocSummary[];
+  totals: WorkspaceTotals;
+  seconds_until_expiry: number;
+}
+
+export type WorkspaceSearchMethod = 'bm25' | 'semantic' | 'hybrid' | 'rerank';
+
+export interface WorkspaceSearchParams {
+  query: string;
+  method: WorkspaceSearchMethod;
+  k: number;
+}
+
+export interface WorkspaceSearchResultItem {
+  rank: number;
+  score: number;
+  document_id: string;
+  document_name: string;
+  page: number | null;
+  passage_index: number;
+  text: string;
+  snippet: string;
+}
+
+export interface WorkspaceSearchResponse {
+  query: string;
+  method: WorkspaceSearchMethod;
+  k: number;
+  took_ms: number;
+  results: WorkspaceSearchResultItem[];
+  message?: string;
+}
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code?: string;
@@ -86,6 +149,7 @@ export function formatValidationDetails(details: unknown): string {
 }
 
 let activeSearchController: AbortController | null = null;
+let activeWorkspaceSearchController: AbortController | null = null;
 
 export const beginSearch = (): AbortController => {
   if (activeSearchController) {
@@ -93,6 +157,14 @@ export const beginSearch = (): AbortController => {
   }
   activeSearchController = new AbortController();
   return activeSearchController;
+};
+
+export const beginWorkspaceSearch = (): AbortController => {
+  if (activeWorkspaceSearchController) {
+    activeWorkspaceSearchController.abort('cancelled');
+  }
+  activeWorkspaceSearchController = new AbortController();
+  return activeWorkspaceSearchController;
 };
 
 async function request<T>(
@@ -204,4 +276,53 @@ export const api = {
       controller
     ),
   beginSearch,
+  createWorkspace: () =>
+    request<CreateWorkspaceResponse>('/workspaces', { method: 'POST' }),
+  workspaceStatus: (token: string) =>
+    request<WorkspaceStatusResponse>('/workspace', {
+      headers: { 'X-Workspace-Token': token },
+    }),
+  uploadWorkspaceDocument: (token: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request<WorkspaceDocSummary>('/workspace/documents', {
+      method: 'POST',
+      headers: {
+        'X-Workspace-Token': token,
+      },
+      body: formData,
+    });
+  },
+  deleteWorkspaceDocument: (token: string, documentId: string) =>
+    request<void>(`/workspace/documents/${encodeURIComponent(documentId)}`, {
+      method: 'DELETE',
+      headers: {
+        'X-Workspace-Token': token,
+      },
+    }),
+  deleteWorkspace: (token: string) =>
+    request<void>('/workspace', {
+      method: 'DELETE',
+      headers: {
+        'X-Workspace-Token': token,
+      },
+    }),
+  workspaceSearch: (
+    token: string,
+    params: WorkspaceSearchParams,
+    controller?: AbortController
+  ) =>
+    request<WorkspaceSearchResponse>(
+      '/workspace/search',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Workspace-Token': token,
+        },
+        body: JSON.stringify(params),
+      },
+      controller
+    ),
+  beginWorkspaceSearch,
 };

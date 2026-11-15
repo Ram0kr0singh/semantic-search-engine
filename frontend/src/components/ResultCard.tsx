@@ -36,19 +36,19 @@ export function ResultCard({ item, onlyHere, getDocument }: ResultCardProps) {
   const arxivUrl = `https://arxiv.org/abs/${encodeURIComponent(item.id)}`;
 
   return (
-    <article className="p-4 sm:p-5 border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--surface-toolbar)]/50 focus-within:bg-[var(--surface-toolbar)]/40 transition-colors">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)] mb-2">
+    <article className="p-4 sm:p-5 border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--surface-raised)]/60 focus-within:bg-[var(--surface-raised)]/50 transition-colors">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)] mb-2.5">
         <div className="flex items-center gap-2">
-          <span className="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] bg-[var(--surface)] text-[var(--text)] border border-[var(--border-subtle)]">
+          <span className="px-2 py-0.5 rounded-sm font-mono font-bold text-xs bg-[#ff3d5a]/10 text-[var(--bl-accent-hot,#ff3d5a)] border border-[#ff3d5a]/30">
             #{item.rank}
           </span>
-          <span className="font-mono text-xs font-medium px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-            Score {item.score.toFixed(3)}
+          <span className="font-mono text-xs font-medium px-2.5 py-0.5 rounded-sm bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--border)]">
+            SCORE {item.score.toFixed(3)}
           </span>
         </div>
         {onlyHere && (
           <span
-            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 shadow-xs"
+            className="inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-mono font-semibold uppercase bg-amber-500/15 text-amber-400 border border-amber-500/30"
             title="Present only in this column's results"
           >
             Only here
@@ -61,7 +61,7 @@ export function ResultCard({ item, onlyHere, getDocument }: ResultCardProps) {
           href={arxivUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-blue-600 dark:hover:text-blue-400 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] rounded"
+          className="hover:text-[var(--bl-accent-hot,#ff3d5a)] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ring)] rounded-sm"
         >
           {item.title || 'Untitled arXiv Paper'}
         </a>
@@ -72,11 +72,11 @@ export function ResultCard({ item, onlyHere, getDocument }: ResultCardProps) {
           href={arxivUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs font-mono text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
+          className="text-xs font-mono text-[var(--bl-accent-hot,#ff3d5a)] hover:underline inline-flex items-center gap-1"
         >
           arXiv:{item.id}
           <svg
-            className="w-3 h-3 opacity-70"
+            className="w-3 h-3 opacity-80"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -92,7 +92,7 @@ export function ResultCard({ item, onlyHere, getDocument }: ResultCardProps) {
         </a>
       </div>
 
-      <p className="mt-2 text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed">
+      <p className="mt-2 text-xs sm:text-sm text-[var(--text)] leading-relaxed">
         {item.snippet}
       </p>
 
@@ -100,13 +100,13 @@ export function ResultCard({ item, onlyHere, getDocument }: ResultCardProps) {
         {item.categories.map((category) => (
           <span
             key={category}
-            className="text-[11px] px-2.5 py-0.5 bg-[var(--surface)] text-[var(--text-muted)] border border-[var(--border-subtle)] rounded-full font-mono"
+            className="text-[10px] uppercase font-mono px-2 py-0.5 bg-[var(--surface-raised)] text-[var(--text-muted)] border border-[var(--border-subtle)] rounded-sm"
           >
             {category}
           </span>
         ))}
         {item.year !== null && item.year !== undefined && (
-          <span className="text-[11px] px-2.5 py-0.5 bg-[var(--surface)] text-[var(--text-muted)] border border-[var(--border-subtle)] rounded-full font-medium">
+          <span className="text-[10px] font-mono px-2 py-0.5 bg-[var(--surface-raised)] text-[var(--text-muted)] border border-[var(--border-subtle)] rounded-sm">
             {item.year}
           </span>
         )}
@@ -117,7 +117,7 @@ export function ResultCard({ item, onlyHere, getDocument }: ResultCardProps) {
           type="button"
           aria-expanded={open}
           onClick={() => void toggle()}
-          className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] rounded py-1 inline-flex items-center gap-1 cursor-pointer"
+          className="text-xs font-mono uppercase tracking-wider text-[var(--bl-accent-hot,#ff3d5a)] hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ring)] rounded-sm py-1 inline-flex items-center gap-1 cursor-pointer"
         >
           <span>{open ? 'Hide full abstract' : 'Show full abstract'}</span>
           <svg
@@ -137,14 +137,14 @@ export function ResultCard({ item, onlyHere, getDocument }: ResultCardProps) {
         </button>
 
         {loading && (
-          <p className="mt-2 text-xs text-[var(--text-muted)] italic">
+          <p className="mt-2 text-xs text-[var(--text-muted)] font-mono italic">
             Loading full abstract…
           </p>
         )}
 
         {error && (
           <p
-            className="mt-2 text-xs text-red-600 dark:text-red-400 font-medium"
+            className="mt-2 text-xs text-[var(--bl-accent-hot,#ff3d5a)] font-mono font-medium"
             role="alert"
           >
             {error}
@@ -152,8 +152,8 @@ export function ResultCard({ item, onlyHere, getDocument }: ResultCardProps) {
         )}
 
         {open && document && (
-          <div className="mt-2.5 p-3.5 bg-[var(--surface-toolbar)] rounded-xl border-l-2 border-blue-500 text-xs sm:text-sm text-[var(--text)] leading-relaxed whitespace-pre-wrap shadow-inner">
-            <span className="block font-bold text-[10px] tracking-wider uppercase text-blue-600 dark:text-blue-400 mb-1">
+          <div className="mt-2.5 p-3.5 bg-[var(--surface-raised)] rounded-sm border-l-2 border-[var(--bl-accent-hot,#ff3d5a)] text-xs sm:text-sm text-[var(--text)] leading-relaxed whitespace-pre-wrap">
+            <span className="block font-mono font-bold text-[10px] tracking-wider uppercase text-[var(--bl-accent-hot,#ff3d5a)] mb-1">
               Full Abstract
             </span>
             {document.abstract}

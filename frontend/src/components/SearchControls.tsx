@@ -58,69 +58,57 @@ export function SearchControls({
   const device = health?.embedding_device?.toUpperCase() ?? 'CUDA';
 
   return (
-    <div className="space-y-10 sm:space-y-12">
-      {/* Hero Section */}
-      <section className="relative pt-4 sm:pt-8 text-center space-y-6 max-w-4xl mx-auto">
-        {/* Status Announcement Pill */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[var(--surface-raised)] border border-[var(--border-accent)] text-[var(--text-muted)] shadow-xs">
-          <span
-            className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"
-            aria-hidden="true"
-          />
-          <span>
-            {health
-              ? `arXiv CS Corpus · ${paperCount} · ${device}`
-              : 'arXiv CS Corpus · 30,000-paper sample of arXiv computer-science research · Neural Search'}
-          </span>
-        </div>
-
-        {/* Fluid Oversized Headline */}
+    <div className="space-y-6 sm:space-y-8">
+      {/* Brand Love Score Minimalist Search Bar & Header */}
+      <section className="relative pt-2 text-center space-y-4 max-w-4xl mx-auto">
         <h1
-          className="font-extrabold tracking-[-0.035em] text-[var(--text)] text-center leading-[1.08] max-w-3xl mx-auto"
-          style={{ fontSize: 'clamp(2.25rem, 5.5vw, 4.25rem)' }}
+          className="font-extrabold uppercase tracking-[0.2em] text-[var(--text)] text-center leading-[1.1] focus:outline-none"
+          style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }}
         >
-          Search papers by meaning, not keywords.
+          Search papers by meaning, not keywords
         </h1>
-
-        {/* Quieter Subtitle */}
-        <p className="text-sm sm:text-base lg:text-lg text-[var(--text-muted)] text-center max-w-2xl mx-auto leading-relaxed">
+        <p className="text-xs sm:text-sm uppercase tracking-wide text-[var(--text-muted)] max-w-2xl mx-auto leading-relaxed font-sans">
           Describe what you are looking for in everyday language. We will find
           relevant computer-science papers for you.
         </p>
 
-        {/* Pill Search Input Form */}
-        <form onSubmit={(e) => onSubmit(e)} className="w-full max-w-2xl mx-auto pt-2">
+        {/* Subtle Top Metadata */}
+        <div className="flex items-center justify-center gap-2 text-[10px] uppercase font-mono tracking-[0.2em] text-[var(--text-muted)]">
+          <span
+            className="w-1.5 h-1.5 rounded-full bg-[var(--bl-accent-hot,#ff3d5a)] shadow-[0_0_8px_rgba(255,61,90,0.8)]"
+            aria-hidden="true"
+          />
+          <span>
+            {health
+              ? `ARXIV CS CORPUS · ${paperCount} · ${device}`
+              : 'ARXIV CS CORPUS · 30,000 PAPERS · NEURAL SEARCH'}
+          </span>
+        </div>
+
+        {/* Minimal Wide Brand Love Search Input Form */}
+        <form onSubmit={(e) => onSubmit(e)} className="w-full max-w-3xl mx-auto">
           <label htmlFor="search-query-input" className="sr-only">
             Search 30,000 computer science research papers
           </label>
-          <div className="relative flex items-center rounded-full bg-[var(--surface-raised)] border border-[var(--border)] p-1.5 sm:p-2 shadow-lg focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-[var(--ring)] transition-all">
+          <div className="relative flex items-center bg-[var(--surface)] border border-[var(--border)] focus-within:border-[var(--bl-accent-hot,#ff3d5a)] focus-within:shadow-[0_0_20px_rgba(255,61,90,0.2)] rounded-sm p-1.5 sm:p-2 transition-all">
             <div
-              className="pl-3.5 pr-2 text-[var(--text-muted)] pointer-events-none"
+              className="pl-3 pr-2 font-mono font-bold text-sm text-[var(--bl-accent-hot,#ff3d5a)] pointer-events-none select-none"
               aria-hidden="true"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+              &gt;
             </div>
             <input
               id="search-query-input"
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Enter research keywords or natural-language question..."
+              placeholder="ENTER RESEARCH KEYWORDS OR NATURAL-LANGUAGE QUESTION..."
               maxLength={500}
-              className="flex-1 min-w-0 bg-transparent text-sm sm:text-base text-[var(--text)] placeholder-[var(--text-muted)] px-2 py-1.5 focus:outline-none"
+              className="flex-1 min-w-0 bg-transparent text-xs sm:text-sm font-mono tracking-wide text-[var(--text)] placeholder-[var(--text-muted)] px-2 py-1.5 focus:outline-none uppercase"
             />
+            <div className="hidden sm:flex items-center px-2 font-mono text-[10px] text-[var(--text-muted)] select-none">
+              [/]
+            </div>
             <button
               type="submit"
               disabled={
@@ -128,26 +116,26 @@ export function SearchControls({
                 isSearching ||
                 (mode === 'compare' && left === model)
               }
-              className="px-5 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-bold bg-[var(--hero-btn-bg)] text-[var(--hero-btn-fg)] shadow-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] cursor-pointer select-none"
+              className="px-5 sm:px-6 py-2 rounded-sm text-xs font-bold uppercase tracking-[0.15em] bg-[var(--bl-accent-hot,#ff3d5a)] text-white shadow-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] cursor-pointer select-none"
             >
               {isSearching ? 'Searching…' : 'Search'}
             </button>
           </div>
 
           {query.length > 400 && (
-            <p className="mt-1.5 text-xs text-[var(--text-muted)]" aria-hidden="true">
+            <p className="mt-1.5 text-xs font-mono text-[var(--bl-accent-hot,#ff3d5a)]" aria-hidden="true">
               {query.length}/500 characters
             </p>
           )}
           <CharacterCounterAnnouncement length={query.length} />
         </form>
 
-        {/* Example Queries */}
-        <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-          <span className="text-xs font-medium text-[var(--text-muted)]">
-            Examples:
+        {/* Minimal Example Queries */}
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 pt-1 text-xs">
+          <span className="text-[10px] uppercase font-mono tracking-wider text-[var(--text-muted)]">
+            EXAMPLES:
           </span>
-          {EXAMPLE_QUERIES.map((example) => (
+          {EXAMPLE_QUERIES.map((example, idx) => (
             <button
               key={example}
               type="button"
@@ -155,48 +143,58 @@ export function SearchControls({
                 setQuery(example);
                 onSubmit(undefined, example);
               }}
-              className="px-3 py-1 text-xs rounded-full border border-[var(--border-subtle)] bg-[var(--pill-bg)] hover:bg-[var(--pill-hover-bg)] text-[var(--text-muted)] hover:text-[var(--text)] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+              className="font-mono text-[11px] tracking-wide text-[var(--text-muted)] hover:text-[var(--bl-accent-hot,#ff3d5a)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ring)] uppercase"
             >
               {example}
+              {idx < EXAMPLE_QUERIES.length - 1 && (
+                <span className="ml-3 text-[var(--border)] select-none">//</span>
+              )}
             </button>
           ))}
         </div>
       </section>
 
-      {/* Framed Window Panel */}
-      <section className="relative rounded-2xl border border-[var(--border-accent)] bg-[var(--surface)] shadow-[0_0_50px_-12px_rgba(59,130,246,0.18)] overflow-hidden flex flex-col">
-        {/* Dark Toolbar Row */}
-        <header className="px-4 py-3 sm:px-6 sm:py-3.5 bg-[var(--surface-toolbar)] border-b border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-4">
-          {/* Mode Switcher Tabs */}
+      {/* Brand Love Score Controls & Visualization Panel */}
+      <section className="relative rounded-sm border border-[var(--border)] bg-[var(--surface)] shadow-lg overflow-hidden flex flex-col">
+        {/* Minimal Toolbar Row */}
+        <header className="px-4 py-3 sm:px-6 bg-[var(--surface-toolbar)] border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-4">
+          {/* Mode Switcher Tabs with Red Underline */}
           <div
-            className="flex items-center p-1 rounded-full bg-[var(--surface-raised)] border border-[var(--border-subtle)]"
+            className="flex items-center gap-5 sm:gap-7"
             role="tablist"
           >
             <button
               type="button"
               role="tab"
-              aria-selected={mode === 'compare'}
-              onClick={() => handleModeChange('compare')}
-              className={`px-3.5 py-1 text-xs font-semibold rounded-full transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] ${
-                mode === 'compare'
-                  ? 'bg-[var(--surface)] text-[var(--text)] shadow-xs border border-[var(--border)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-              }`}
-            >
-              Compare approaches
-            </button>
-            <button
-              type="button"
-              role="tab"
               aria-selected={mode === 'search'}
               onClick={() => handleModeChange('search')}
-              className={`px-3.5 py-1 text-xs font-semibold rounded-full transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] ${
+              className={`relative py-1 text-xs font-semibold uppercase tracking-[0.2em] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] ${
                 mode === 'search'
-                  ? 'bg-[var(--surface)] text-[var(--text)] shadow-xs border border-[var(--border)]'
+                  ? 'text-[var(--text)] font-bold'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)]'
               }`}
             >
               One approach
+              {mode === 'search' && (
+                <span className="absolute -bottom-1 left-0 right-0 h-[2px] bg-[var(--bl-accent-hot,#ff3d5a)]" />
+              )}
+            </button>
+            <span className="text-[var(--border)] select-none text-xs font-light">|</span>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'compare'}
+              onClick={() => handleModeChange('compare')}
+              className={`relative py-1 text-xs font-semibold uppercase tracking-[0.2em] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] ${
+                mode === 'compare'
+                  ? 'text-[var(--text)] font-bold'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+              }`}
+            >
+              Compare approaches
+              {mode === 'compare' && (
+                <span className="absolute -bottom-1 left-0 right-0 h-[2px] bg-[var(--bl-accent-hot,#ff3d5a)]" />
+              )}
             </button>
           </div>
 
@@ -206,7 +204,7 @@ export function SearchControls({
               <div className="flex items-center gap-2">
                 <label
                   htmlFor="left-select"
-                  className="text-xs font-medium text-[var(--text-muted)] whitespace-nowrap"
+                  className="text-xs font-mono uppercase tracking-wider text-[var(--text-muted)] whitespace-nowrap"
                 >
                   First approach:
                 </label>
@@ -222,7 +220,7 @@ export function SearchControls({
             <div className="flex items-center gap-2">
               <label
                 htmlFor="model-select"
-                className="text-xs font-medium text-[var(--text-muted)] whitespace-nowrap"
+                className="text-xs font-mono uppercase tracking-wider text-[var(--text-muted)] whitespace-nowrap"
               >
                 {mode === 'compare' ? 'Second approach:' : 'Search approach:'}
               </label>
@@ -237,7 +235,7 @@ export function SearchControls({
             <div className="flex items-center gap-2">
               <label
                 htmlFor="k-select"
-                className="text-xs font-medium text-[var(--text-muted)] whitespace-nowrap"
+                className="text-xs font-mono uppercase tracking-wider text-[var(--text-muted)] whitespace-nowrap"
               >
                 Show:
               </label>
@@ -245,7 +243,7 @@ export function SearchControls({
                 id="k-select"
                 value={k}
                 onChange={(e) => setK(Number(e.target.value) as ResultCount)}
-                className="text-xs rounded-lg px-2.5 py-1.5 bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--text)] shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] cursor-pointer"
+                className="text-xs font-mono uppercase rounded-sm px-2.5 py-1.5 bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--text)] shadow-2xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ring)] cursor-pointer"
               >
                 <option value={5}>5 results</option>
                 <option value={10}>10 results</option>
@@ -256,17 +254,17 @@ export function SearchControls({
         </header>
 
         {/* Inline Alerts & Hints in Window */}
-        <div className="px-4 sm:px-6 py-3 bg-[var(--surface-toolbar)] border-b border-[var(--border-subtle)] text-xs text-[var(--text-muted)] leading-relaxed">
+        <div className="px-4 sm:px-6 py-2.5 bg-[var(--surface-raised)] border-b border-[var(--border-subtle)] text-xs text-[var(--text-muted)] leading-relaxed">
           <p>
             {mode === 'compare'
               ? 'Compare two ways of finding papers. Look at which papers each approach surfaces; their score numbers are calculated differently.'
               : 'Choose how the search should understand your words. “Meaning match” is a good place to start.'}
           </p>
-          <details className="mt-2">
-            <summary className="cursor-pointer text-blue-600 dark:text-blue-400 font-medium">
+          <details className="mt-1.5">
+            <summary className="cursor-pointer text-[var(--bl-accent-hot,#ff3d5a)] font-mono text-xs uppercase tracking-wider">
               What do these approaches mean?
             </summary>
-            <ul className="mt-1.5 pl-4 list-disc space-y-1">
+            <ul className="mt-1.5 pl-4 list-disc space-y-1 text-xs">
               <li><strong>Exact wording match</strong> finds papers using the same important words.</li>
               <li><strong>Meaning match</strong> can find related papers even when they use different wording.</li>
               <li><strong>Combined match</strong> uses both approaches.</li>
@@ -276,7 +274,7 @@ export function SearchControls({
         </div>
 
         {mode === 'search' && selectedMethod && (
-          <div className="px-4 sm:px-6 py-3 bg-[var(--surface-toolbar)] border-b border-[var(--border-subtle)] text-xs text-[var(--text-muted)] space-y-1.5 leading-relaxed">
+          <div className="px-4 sm:px-6 py-2.5 bg-[var(--surface-raised)] border-b border-[var(--border-subtle)] text-xs text-[var(--text-muted)] space-y-1.5 leading-relaxed">
             <p>{methodExplanation(selectedMethod)}</p>
             {selectedMethod.benchmarks && selectedMethod.benchmarks.length > 0 && (
               <>
@@ -295,7 +293,7 @@ export function SearchControls({
               </>
             )}
             {selectedMethod.kind === 'reranked' && (
-              <p className="text-blue-600 dark:text-blue-400 font-medium">
+              <p className="text-[var(--bl-accent-hot,#ff3d5a)] font-medium">
                 This option takes longer because it reviews the top 100 matches a second time.
               </p>
             )}
@@ -304,7 +302,7 @@ export function SearchControls({
 
         {mode === 'compare' && left === model && (
           <div
-            className="px-4 py-2.5 bg-amber-500/10 border-b border-amber-500/20 text-xs text-amber-700 dark:text-amber-300 font-medium flex items-center gap-2"
+            className="px-4 py-2 bg-amber-500/10 border-b border-amber-500/20 text-xs text-amber-400 font-medium flex items-center gap-2"
             role="status"
           >
             <span aria-hidden="true">⚠️</span>
@@ -314,7 +312,7 @@ export function SearchControls({
 
         {selectedMethod && !selectedMethod.ready && (
           <div
-            className="px-4 py-2.5 bg-amber-500/10 border-b border-amber-500/20 text-xs text-amber-700 dark:text-amber-300 font-medium flex items-center gap-2"
+            className="px-4 py-2 bg-amber-500/10 border-b border-amber-500/20 text-xs text-amber-400 font-medium flex items-center gap-2"
             role="status"
           >
             <span aria-hidden="true">⚠️</span>
@@ -326,7 +324,7 @@ export function SearchControls({
 
         {settingsChanged && (
           <div
-            className="px-4 py-2.5 bg-blue-500/10 border-b border-blue-500/20 text-xs text-blue-700 dark:text-blue-300 font-medium flex items-center gap-2"
+            className="px-4 py-2 bg-[#ff3d5a]/10 border-b border-[#ff3d5a]/20 text-xs text-[var(--bl-accent-hot,#ff3d5a)] font-medium flex items-center gap-2"
             role="status"
           >
             <span aria-hidden="true">ℹ️</span>
@@ -334,8 +332,8 @@ export function SearchControls({
           </div>
         )}
 
-        {/* Window Content / Results */}
-        <div className="p-4 sm:p-6 space-y-6">{children}</div>
+        {/* Window Content / Results (Curve Chart or Compare Columns) */}
+        <div className="p-3 sm:p-5 space-y-6">{children}</div>
       </section>
     </div>
   );
@@ -364,7 +362,7 @@ function MethodSelect({
       id={id}
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="text-xs rounded-lg px-2.5 py-1.5 bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--text)] shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] cursor-pointer max-w-[210px] truncate"
+      className="text-xs font-mono uppercase rounded-sm px-2.5 py-1.5 bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--text)] shadow-2xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ring)] cursor-pointer max-w-[210px] truncate"
     >
       {groups.map(([kind, label]) => {
         const items = methods.filter((method) => method.kind === kind);
