@@ -124,15 +124,94 @@ See the [full statistical analysis](docs/analysis/analysis.md) for paired compar
 ## Project Structure
 
 ```text
-.
-├── backend/app/{api,data,evaluation,retrieval}/
-├── docs/{analysis,images,results}/
+semantic-search-engine/
+├── backend/
+│   ├── Dockerfile
+│   └── app/
+│       ├── api/
+│       │   ├── main.py                 # FastAPI application
+│       │   ├── routers.py              # Search, health, documents, and evaluation routes
+│       │   ├── schemas.py              # API request and response models
+│       │   ├── state.py                # Shared application state
+│       │   └── workspaces.py           # Private uploaded-document workspaces
+│       ├── data/
+│       │   ├── arxiv.py                # Demo corpus loading
+│       │   ├── beir.py                 # BEIR dataset registry and loading
+│       │   ├── chunking.py             # Text chunking utilities
+│       │   └── scifact.py              # SciFact dataset support
+│       ├── evaluation/
+│       │   ├── metrics.py              # Retrieval evaluation metrics
+│       │   └── runner.py               # Evaluation execution
+│       └── retrieval/
+│           ├── base.py                 # Shared retriever interface
+│           ├── bm25.py                 # BM25 keyword retrieval
+│           ├── hybrid.py               # Hybrid rank fusion
+│           ├── rerank.py               # Cross-encoder reranking
+│           ├── sbert.py                # Sentence-BERT retrieval
+│           └── tfidf.py                # TF-IDF keyword retrieval
+├── docs/
+│   ├── analysis/
+│   │   ├── analysis.md                # Statistical analysis and comparisons
+│   │   ├── analysis.json              # Machine-readable analysis
+│   │   └── tuning_*.json              # Dataset and model tuning results
+│   ├── images/                         # README screenshots and demo
+│   └── results/
+│       ├── summary.json                # Committed benchmark summary
+│       ├── fiqa_*.json                 # FiQA method-level results
+│       ├── scifact_*.json              # SciFact method-level results
+│       └── per_query/
+│           ├── fiqa_*_perquery.json    # FiQA query-level metrics
+│           └── scifact_*_perquery.json # SciFact query-level metrics
 ├── frontend/
+│   ├── public/                         # Static public assets
+│   ├── src/
+│   │   ├── assets/                     # Bundled UI assets
+│   │   ├── components/
+│   │   │   ├── brandlove/              # Search curves, results, and detail panel
+│   │   │   ├── evaluation/             # Evaluation dashboard and charts
+│   │   │   ├── EvaluationView.tsx
+│   │   │   ├── FilePreviewModal.tsx
+│   │   │   ├── Header.tsx
+│   │   │   ├── OfflineView.tsx
+│   │   │   ├── ResultCard.tsx
+│   │   │   ├── ResultColumn.tsx
+│   │   │   ├── SearchControls.tsx
+│   │   │   └── WorkspaceView.tsx
+│   │   ├── App.tsx                     # Main application UI
+│   │   ├── api.ts                      # Backend API client
+│   │   ├── comparison.ts               # Compare-view logic
+│   │   ├── config.ts                   # Frontend configuration
+│   │   ├── evaluation.ts               # Evaluation data handling
+│   │   ├── main.tsx                    # Frontend entry point
+│   │   ├── theme.ts                    # Theme management
+│   │   ├── urlState.ts                 # Search URL state helpers
+│   │   ├── workspaceStorage.ts         # Workspace token storage
+│   │   └── workspaceUtils.tsx          # Workspace UI utilities
+│   ├── index.html
+│   ├── nginx.conf
+│   ├── package.json
+│   ├── package-lock.json
+│   └── vite.config.ts
 ├── scripts/
-├── tests/
-├── docker-compose.yml
-└── docker-compose.gpu.yml
+│   ├── analyze_results.py              # Generate statistical analysis
+│   ├── build_corpus.py                 # Build the arXiv demo corpus
+│   ├── evaluate.py                     # Run retrieval benchmarks
+│   ├── export_results.py               # Export validated evaluation results
+│   ├── search_demo.py                  # Run a search demo
+│   └── tune_hybrid.py                  # Tune hybrid retrieval weights
+├── tests/                              # Backend API, retrieval, and evaluation tests
+├── .github/workflows/ci.yml            # Continuous integration workflow
+├── .env.example                        # Example environment settings
+├── docker-compose.yml                  # Default Docker setup
+├── docker-compose.gpu.yml              # Optional GPU Docker setup
+├── pytest.ini
+├── requirements.txt
+├── LICENSE
+└── README.md
 ```
+
+Local generated folders such as `data/` and `results/`, along with virtual
+environments and dependency caches, are not part of the tracked source tree.
 
 ## Getting Started
 
