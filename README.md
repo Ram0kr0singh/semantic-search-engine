@@ -13,8 +13,7 @@ K.R. Mangalam University**
 
 ## Hero screenshot
 
-A hero screenshot is not included in this checkout. See [Screenshots](#screenshots)
-for the current image status.
+![Demo of the semantic search engine](docs/images/demo.gif)
 
 ## What this is
 
@@ -29,6 +28,8 @@ for comparing methods side by side.
 ## Key results
 
 Values below are rounded from the committed [evaluation summary](docs/results/summary.json).
+These benchmark numbers come from SciFact and FiQA, not the arXiv demo corpus,
+which has no relevance labels.
 
 | Dataset | Method | nDCG@10 | Recall@100 |
 | --- | --- | ---: | ---: |
@@ -87,6 +88,26 @@ configuration; timings vary run to run.**
 Screenshots in [`docs/images/`](docs/images/) are static examples; current
 corpus size and category wording are supplied at runtime by `/health`.
 
+![Search results curve](docs/images/search-curve.png)
+
+*Semantic search results ranked by relevance.*
+
+![Compare methods](docs/images/compare.png)
+
+*Side-by-side comparison of retrieval methods.*
+
+![Your documents](docs/images/your-documents.png)
+
+*Search within uploaded documents.*
+
+![Evaluation results](docs/images/evaluation.png)
+
+*Benchmark metrics in the evaluation view.*
+
+![Light theme search](docs/images/search-light.png)
+
+*Search interface in light mode.*
+
 ## Features
 
 - TF-IDF and BM25 keyword retrieval, Sentence-BERT retrieval with cosine
@@ -104,8 +125,7 @@ corpus size and category wording are supplied at runtime by `/health`.
 - FastAPI endpoints for health, methods, search, documents, and the evaluation
   snapshot.
 - React UI with Search, Compare, Your documents, and Evaluation views; Compare supports any two distinct available methods, and Your documents enables searching within private uploaded files.
-- Shareable search settings in the URL, document expansion, and offline/error
-  handling.
+- Document expansion and offline/error handling.
 - Docker Compose setup with CPU as the default and an optional NVIDIA override.
 
 ## Architecture
@@ -377,6 +397,9 @@ the first-stage Recall@100 by construction and is excluded from rerank
 comparisons. Rerank query latency includes first-stage search, cross-encoder
 scoring of up to 100 pairs, and final sorting; its index time is the
 first-stage index time, with model loading outside the timed index build.
+On FiQA, it significantly improves BM25 but significantly lowers MPNet; on
+SciFact, its gains are not significant after Holm correction (see the
+[statistical analysis](docs/analysis/analysis.md)).
 
 In the latest committed snapshot, indexing FiQA with MPNet took 422.38 seconds
 on the noted laptop GPU. Model loading is measured separately from index build
@@ -480,15 +503,18 @@ Default limits are 20 workspaces, 10 files per workspace, 10 MB per file, 200 PD
 
 Workspace indexes are built by the server that receives the upload. BM25 is immediate; semantic, hybrid, and rerank indexing/search share the already-loaded models and global inference lock with arXiv search. Indexing cost scales with passage count and hardware; CPU and GPU installations will differ. Parsing occurs outside the model lock, but model work may wait behind another neural request.
 
-On Windows Command Prompt, create a workspace, copy its `workspace_id` value from the response, and set it in the current shell:
+On Windows Command Prompt, create a workspace, copy its `workspace_id` value
+from the response, and set it in the current shell. After uploading, copy a
+returned `document_id` into `DOCUMENT_ID` before deleting the file:
 
 ```cmd
 curl.exe -s -X POST http://127.0.0.1:8000/workspaces
 set WORKSPACE_TOKEN=PASTE_workspace_id_HERE
 curl.exe -s -H "X-Workspace-Token: %WORKSPACE_TOKEN%" -F "file=@README.md" http://127.0.0.1:8000/workspace/documents
+set DOCUMENT_ID=your_document_id_here
 curl.exe -s -H "X-Workspace-Token: %WORKSPACE_TOKEN%" http://127.0.0.1:8000/workspace
 curl.exe -s -X POST -H "X-Workspace-Token: %WORKSPACE_TOKEN%" -H "Content-Type: application/json" -d "{\"query\":\"semantic search\",\"method\":\"bm25\",\"k\":10}" http://127.0.0.1:8000/workspace/search
-curl.exe -i -X DELETE -H "X-Workspace-Token: %WORKSPACE_TOKEN%" http://127.0.0.1:8000/workspace/documents/PASTE_document_id_HERE
+curl.exe -i -X DELETE -H "X-Workspace-Token: %WORKSPACE_TOKEN%" http://127.0.0.1:8000/workspace/documents/%DOCUMENT_ID%
 curl.exe -i -X DELETE -H "X-Workspace-Token: %WORKSPACE_TOKEN%" http://127.0.0.1:8000/workspace
 ```
 
