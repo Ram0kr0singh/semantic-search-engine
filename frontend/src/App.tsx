@@ -296,7 +296,7 @@ export default function App() {
   const displayedResults = searchResults.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   return (
-    <div className="relative min-h-screen flex flex-col bg-[var(--canvas)] text-[var(--text)] overflow-x-hidden selection:bg-[var(--bl-accent-hot,#ff3d5a)] selection:text-white">
+    <div className="relative min-h-screen flex flex-col bg-[var(--canvas)] text-[var(--text)] overflow-x-clip selection:bg-[var(--bl-accent-hot,#ff3d5a)] selection:text-white">
       {/* Abstract Glowing Gradient Shape Behind Hero & Window */}
       <div
         className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-full max-w-5xl h-[560px] overflow-hidden -z-10"
@@ -314,21 +314,21 @@ export default function App() {
         />
       </div>
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-8 flex flex-col justify-between">
-        <Header
-          health={health}
-          view={view}
-          onViewChange={handleViewChange}
-          onHome={goHome}
-          theme={theme}
-          onToggleTheme={toggleTheme}
-          methods={methods}
-          currentMethod={model}
-          onSelectMethod={setModel}
-          k={k}
-          onKChange={setK}
-        />
+      <Header
+        health={health}
+        view={view}
+        onViewChange={handleViewChange}
+        onHome={goHome}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        methods={methods}
+        currentMethod={model}
+        onSelectMethod={setModel}
+        k={k}
+        onKChange={setK}
+      />
 
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-8 flex flex-col justify-between">
         {view === 'eval' ? (
           <EvaluationView />
         ) : view === 'documents' ? (

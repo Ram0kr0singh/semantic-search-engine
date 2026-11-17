@@ -40,8 +40,9 @@ export function BrandLoveHeader({
 
   return (
     <>
-      <header className="relative flex items-center justify-between px-4 sm:px-8 py-5 select-none z-30 border-b border-[var(--border-subtle)]">
-        {/* Brand Wordmark (Brand Love Score Style) */}
+      <header className="sticky top-0 z-40 w-full bg-[var(--canvas)]/90 backdrop-blur-md border-b border-[var(--border-subtle)] transition-colors select-none">
+        <div className="max-w-6xl mx-auto w-full flex items-center justify-between px-4 sm:px-8 py-3.5">
+          {/* Brand Wordmark (Brand Love Score Style) */}
         <button
           type="button"
           onClick={onHome}
@@ -117,7 +118,8 @@ export function BrandLoveHeader({
             <span className="w-5 h-[2px] bg-[var(--bl-accent-hot,#ff3d5a)] rounded-full transition-transform" />
           </button>
         </div>
-      </header>
+      </div>
+    </header>
 
       {/* Navigation & Settings Drawer */}
       <BrandLoveNavDrawer
