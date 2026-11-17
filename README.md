@@ -545,4 +545,4 @@ the repository documents the dataset card license as CC0-1.0.
 
 ## License
 
-License: not yet specified
+MIT. See LICENSE.
